@@ -39,9 +39,15 @@ void LogInWindow::logInClicked()
         QByteArray byteArray = ui->lineEditPassword->text().toUtf8();
         QByteArray passwordSha1 = QCryptographicHash::hash(byteArray,QCryptographicHash::Sha1);
 
+        // check the connection
+        SerialCommunication* communication = SerialCommunication::getInstance();
+        if ( communication != nullptr )
+        {
+            QMessageBox::information(NULL, "Information", "Something wrong with the port");
+        }
+
         // check the password
-        SerialCommunication& communication = SerialCommunication::getInstance();
-        if (communication.checkPasswordAndUser(ui->lineEditUsername->text(), passwordSha1) == true)
+        if (communication->checkPasswordAndUser(ui->lineEditUsername->text(), passwordSha1) == true)
         {
             // start the main window & clean the information
             ui->lineEditUsername->clear();
@@ -71,8 +77,15 @@ void LogInWindow::signInClicked()
     {
         case QMessageBox::Ok:
         {
+            // check the connection
+            SerialCommunication* communication = SerialCommunication::getInstance();
+            if (communication != nullptr )
+            {
+                QMessageBox::information(NULL, "Information", "Something wrong with the port");
+            }
+
             // clear the password and username from the board
-            if ( SerialCommunication::getInstance().deletePasswordAndUser() )
+            if ( SerialCommunication::getInstance()->deletePasswordAndUser() )
             {
                 // close the current window and signal other window to be active
                 this->close();

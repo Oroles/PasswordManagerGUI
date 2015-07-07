@@ -20,7 +20,8 @@ int main(int argc, char *argv[])
     QObject::connect(&loginWindow, SIGNAL(startMainWindow()), &mainWindow, SLOT(show()));
     QObject::connect(&signUpWindow, SIGNAL(closedWindow()), &loginWindow, SLOT(show()));
 
-    loginWindow.show();
+    //loginWindow.show();
+    mainWindow.show();
     
     return a.exec();
 }

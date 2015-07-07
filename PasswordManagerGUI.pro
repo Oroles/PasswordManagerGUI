@@ -17,12 +17,14 @@ SOURCES += main.cpp\
         loginwindow.cpp \
     signupwindow.cpp \
     serialcommunication.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    utils.cpp
 
 HEADERS  += loginwindow.h \
     signupwindow.h \
     serialcommunication.h \
-    mainwindow.h
+    mainwindow.h \
+    utils.h
 
 FORMS    += loginwindow.ui \
     signupwindow.ui \

@@ -47,8 +47,8 @@ void SignUpWindow::createUserClicked()
             QByteArray passwordSha1 = QCryptographicHash::hash(password, QCryptographicHash::Sha1);
 
             // create the new user
-            SerialCommunication& serialCommunication = SerialCommunication::getInstance();
-            if( serialCommunication.writeNewAccount(ui->lineEditUsername->text(), passwordSha1) )
+            SerialCommunication* serialCommunication = SerialCommunication::getInstance();
+            if( serialCommunication->writeNewAccount(ui->lineEditUsername->text(), passwordSha1) )
             {
                 // everything went fine & go back to login window
                 QMessageBox::information(NULL, "Information", "New account is created");
