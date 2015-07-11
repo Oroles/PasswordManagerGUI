@@ -7,7 +7,8 @@
 
 SignUpWindow::SignUpWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::SignUpWindow)
+    ui(new Ui::SignUpWindow),
+    serialCommunication(SerialCommunication::getInstance())
 {
     ui->setupUi(this);
 
@@ -24,6 +25,11 @@ SignUpWindow::SignUpWindow(QWidget *parent) :
     // connects
     connect(ui->buttonCreateUser, SIGNAL(clicked()), this, SLOT(createUserClicked()));
     connect(ui->buttonCancel, SIGNAL(clicked()), this, SLOT(cancelClicked()));
+
+    if( serialCommunication != nullptr )
+    {
+        connect(serialCommunication, SIGNAL(sendMessageToSingUp(QString,QString)), this, SLOT(displayMessage(QString,QString)));
+    }
 }
 
 void SignUpWindow::createUserClicked()
@@ -73,6 +79,11 @@ void SignUpWindow::cancelClicked()
     // we close the current window and emit a signal so the loginwindow will be shown
     this->close();
     emit closedWindow();
+}
+
+void SignUpWindow::displayMessage(QString message, QString status)
+{
+    QMessageBox::information(NULL, message, status);
 }
 
 SignUpWindow::~SignUpWindow()

@@ -7,7 +7,8 @@
 
 LogInWindow::LogInWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::LogInWindow)
+    ui(new Ui::LogInWindow),
+    serialCommunication(SerialCommunication::getInstance())
 {
     ui->setupUi(this);
 
@@ -23,6 +24,11 @@ LogInWindow::LogInWindow(QWidget *parent) :
     // connections
     connect(ui->pushButtonLogIn, SIGNAL(clicked()), this, SLOT(logInClicked()));
     connect(ui->pushButtonSignIn, SIGNAL(clicked()), this, SLOT(signInClicked()));
+
+    if(serialCommunication != nullptr)
+    {
+        connect(serialCommunication, SIGNAL(sendMessageToLogin(QString,QString)), this, SLOT(displayMessage(QString,QString)));
+    }
 }
 
 void LogInWindow::logInClicked()
@@ -78,14 +84,13 @@ void LogInWindow::signInClicked()
         case QMessageBox::Ok:
         {
             // check the connection
-            SerialCommunication* communication = SerialCommunication::getInstance();
-            if (communication != nullptr )
+            if ( serialCommunication != nullptr )
             {
                 QMessageBox::information(NULL, "Information", "Something wrong with the port");
             }
 
             // clear the password and username from the board
-            if ( SerialCommunication::getInstance()->deletePasswordAndUser() )
+            if ( serialCommunication->deletePasswordAndUser() )
             {
                 // close the current window and signal other window to be active
                 this->close();
@@ -98,6 +103,11 @@ void LogInWindow::signInClicked()
         }
     }
 
+}
+
+void LogInWindow::displayMessage(QString message, QString status)
+{
+    QMessageBox::information(NULL, message, status);
 }
 
 LogInWindow::~LogInWindow()

@@ -2,6 +2,7 @@
 #define SIGNUPWINDOW_H
 
 #include <QMainWindow>
+#include "serialcommunication.h"
 
 namespace Ui {
 class SignUpWindow;
@@ -18,12 +19,14 @@ public:
 private slots:
     void createUserClicked();
     void cancelClicked();
+    void displayMessage(QString message, QString status);
 
 signals:
     void closedWindow();
     
 private:
     Ui::SignUpWindow *ui;
+    SerialCommunication* serialCommunication;
 };
 
 #endif // SIGNUPWINDOW_H

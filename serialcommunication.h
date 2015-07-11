@@ -7,6 +7,8 @@
 #include <QList>
 #include <QPair>
 
+#include "utils.h"
+
 /*
  *Sa creez doua pthread unu care sa apeleze metoda de read
  *iar celalalt sa apeleze method the write
@@ -24,14 +26,13 @@ public:
     static SerialCommunication *getInstance();
     ~SerialCommunication();
 
-    bool checkPasswordAndUser(QString username, QString password) const;
-    bool writeNewAccount(QString username, QString password) const;
+    bool checkPasswordAndUser(const QString &username, const QString &password) const;
+    bool writeNewAccount(const QString& username, const QString &password) const;
     bool deletePasswordAndUser() const;
-    bool addEntry(QString website, QString username, QString password) const;
-    bool retriveEntry(QString website, QString username) const;
-    bool deleteEntry(QString website, QString username) const;
-
-    void obtainWebsites();
+    bool addEntry(const QString &website, const QString &username, const QString &password) const;
+    bool retriveEntry(const QString &website, const QString &username) const;
+    bool deleteEntry(const QString& website, const QString& username) const;
+    bool obtainWebsites();
 
 private:
     explicit SerialCommunication(QObject *parent = 0);
@@ -40,6 +41,11 @@ private:
     SerialCommunication(SerialCommunication &&rhs) = delete;
     
 signals:
+    void sendMessageToLogin(QString msg, QString status);
+    void sendMessageToSingUp(QString msg, QString status);
+    void sendMessageToMain(Utils::ReplyCode, QString msg, QString status);
+    void sendNewWebsite(QString website, QString username);
+    void sendPassword(QString password);
     
 private slots:
     void readBytes();

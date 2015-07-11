@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 
 #include <QMessageBox>
+#include <QStringList>
+#include <QThread>
+#include <sstream>
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -27,24 +30,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->buttonGeneratePassword, SIGNAL(clicked()), this, SLOT(generatePassword()));
     connect(ui->buttonDeleteEntry, SIGNAL(clicked()), this, SLOT(deleteEntry()));
 
-    this->addWebsite("ana","maria");
-    this->addWebsite("maria","ioana");
+    if ( serialCommunication != nullptr )
+    {
+        // connect serialCommunication with GUI
+        connect(serialCommunication, SIGNAL(sendMessageToMain(Utils::ReplyCode,QString,QString)), this, SLOT(receiveReply(Utils::ReplyCode,QString,QString)));
+        connect(serialCommunication, SIGNAL(sendNewWebsite(QString,QString)), this, SLOT(addWebsite(QString,QString)));
+        connect(serialCommunication, SIGNAL(sendPassword(QString)), this, SLOT(displayPassword(QString)));
+    }
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::obtainWebsites()
-{
-    // check if the connection is made
-    if (serialCommunication == nullptr)
-    {
-        QMessageBox::information(NULL, "Information", "Something wrong with the port");
-    }
-
-    serialCommunication->obtainWebsites();
 }
 
 void MainWindow::addWebsite(QString website, QString username)
@@ -91,15 +88,9 @@ void MainWindow::addEntry()
         else
         {
             // addd the password to the database via arduino
-            if (serialCommunication->addEntry(ui->lineEditWebsite->text(),
+            if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
                                               ui->lineEditUsername->text(),
                                               ui->lineEditPassword->text()))
-            {
-                // everything went fine then also add the entry to the available websites
-                this->addWebsite(ui->lineEditPassword->text(), ui->lineEditPassword->text());
-                QMessageBox::information(NULL, "Information", "New entry is added");
-            }
-            else
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not add entry");
@@ -127,13 +118,8 @@ void MainWindow::retriveEntry()
         else
         {
             // send the request to get the entry
-            if (serialCommunication->retriveEntry(ui->lineEditWebsite->text(),
+            if (!serialCommunication->retriveEntry(ui->lineEditWebsite->text(),
                                                   ui->lineEditUsername->text()))
-            {
-                // everything went fine
-                QMessageBox::information(NULL, "Information", "New entry is retrived");
-            }
-            else
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not retrive entry");
@@ -159,18 +145,28 @@ void MainWindow::deleteEntry()
         else
         {
             // send the request to delete the entry
-            if (serialCommunication->deleteEntry(ui->lineEditWebsite->text(),
+            if (!serialCommunication->deleteEntry(ui->lineEditWebsite->text(),
                                                  ui->lineEditUsername->text()))
-            {
-                // everything went fine
-                this->deleteWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
-                QMessageBox::information(NULL, "Information", "Entry is deleted");
-            }
-            else
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not delete entry");
             }
+        }
+    }
+}
+
+void MainWindow::obtainWebsites()
+{
+    // check if the connection is made
+    if (serialCommunication == nullptr)
+    {
+        QMessageBox::information(NULL, "Information", "Something wrong with the port");
+    }
+    else
+    {
+        if( serialCommunication->obtainWebsites() )
+        {
+
         }
     }
 }
@@ -190,4 +186,51 @@ void MainWindow::generatePassword()
 
     // assign the password in the password field
     ui->lineEditPassword->setText(password);
+}
+
+void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString status)
+{
+    switch (reply) {
+    case Utils::ReplyCode::ReplyAddEntry:
+        if( status == "Ok" )
+        {
+            // everything went fine then also add the entry to the available websites
+            this->addWebsite(ui->lineEditPassword->text(), ui->lineEditPassword->text());
+            QMessageBox::information(NULL, "Information", "New entry is added");
+        }
+        else
+        {
+            QMessageBox::information(NULL, message, status);
+        }
+
+        break;
+    case Utils::ReplyCode::ReplyDeleteEntry:
+        if( status == "Ok" )
+        {
+            // everything went fine
+            this->deleteWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
+            QMessageBox::information(NULL, "Information", "Entry is deleted");
+        }
+        else
+        {
+            QMessageBox::information(NULL, message, status);
+        }
+        break;
+    case Utils::ReplyCode::ReplyError:
+        QMessageBox::information(NULL, message, status);
+        break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::displayPassword(QString password)
+{
+    QThread::sleep(5);
+    for( QString::const_iterator it = password.constBegin(); it != password.constEnd(); ++it )
+    {
+        std::stringstream s;
+        s << "xdotool key " << (*it).toLatin1();
+        system(s.str().c_str());
+    }
 }

@@ -2,8 +2,10 @@
 #define MAINWINDOW_H
 
 #include "serialcommunication.h"
+#include "utils.h"
 
 #include <QMainWindow>
+
 
 namespace Ui {
 class MainWindow;
@@ -25,6 +27,8 @@ private slots:
     void generatePassword();
     void addWebsite(QString website, QString username);
     void deleteWebsite(QString website, QString username);
+    void receiveReply(Utils::ReplyCode, QString message, QString status);
+    void displayPassword(QString password);
     
 private:
     Ui::MainWindow *ui;

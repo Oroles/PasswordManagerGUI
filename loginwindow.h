@@ -2,6 +2,7 @@
 #define LOGINWINDOW_H
 
 #include <QMainWindow>
+#include "serialcommunication.h"
 
 namespace Ui {
 class LogInWindow;
@@ -18,6 +19,7 @@ public:
 private slots:
     void logInClicked();
     void signInClicked();
+    void displayMessage(QString message, QString status);
 
 signals:
     void startSignUpWindow();
@@ -25,6 +27,7 @@ signals:
     
 private:
     Ui::LogInWindow *ui;
+    SerialCommunication* serialCommunication;
 };
 
 #endif // LOGINWINDOW_H
