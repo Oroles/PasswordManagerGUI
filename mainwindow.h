@@ -22,7 +22,7 @@ public:
 private slots:
     void obtainWebsites();
     void addEntry();
-    void retriveEntry();
+    void retrieveEntry();
     void deleteEntry();
     void generatePassword();
     void addWebsite(QString website, QString username);
@@ -33,6 +33,9 @@ private slots:
 private:
     Ui::MainWindow *ui;
     SerialCommunication* serialCommunication;
+
+    bool isCorrectSize(QString text) const;
+    void clearGUI();
 };
 
 #endif // MAINWINDOW_H

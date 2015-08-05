@@ -14,14 +14,11 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        loginwindow.cpp \
-    signupwindow.cpp \
     serialcommunication.cpp \
     mainwindow.cpp \
     utils.cpp
 
-HEADERS  += loginwindow.h \
-    signupwindow.h \
+HEADERS  += \
     serialcommunication.h \
     mainwindow.h \
     utils.h

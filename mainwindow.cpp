@@ -6,6 +6,8 @@
 #include <QThread>
 #include <sstream>
 #include <QDebug>
+#include <QProcess>
+#include <QHeaderView>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,19 +16,20 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //initialize table of websites
-    QStringList tableWidgetHeader;
-    tableWidgetHeader << "Website" << "Username";
-    ui->tableWidgetWebsite->setHorizontalHeaderLabels(tableWidgetHeader);
+
+    // set table widget
     ui->tableWidgetWebsite->setColumnCount(2);
+    ui->tableWidgetWebsite->setHorizontalHeaderItem(0, new QTableWidgetItem("website"));
+    ui->tableWidgetWebsite->setHorizontalHeaderItem(1, new QTableWidgetItem("username"));
+    ui->tableWidgetWebsite->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // set password mode for password field
     ui->lineEditPassword->setEchoMode(QLineEdit::Password);
 
-    //connections
+    // connections
     connect(ui->buttonGetWebsites, SIGNAL(clicked()), this, SLOT(obtainWebsites()));
     connect(ui->buttonAddEntry, SIGNAL(clicked()), this, SLOT(addEntry()));
-    connect(ui->buttonRetriveEntry, SIGNAL(clicked()), this, SLOT(retriveEntry()));
+    connect(ui->buttonRetrieveEntry, SIGNAL(clicked()), this, SLOT(retrieveEntry()));
     connect(ui->buttonGeneratePassword, SIGNAL(clicked()), this, SLOT(generatePassword()));
     connect(ui->buttonDeleteEntry, SIGNAL(clicked()), this, SLOT(deleteEntry()));
 
@@ -71,7 +74,8 @@ void MainWindow::deleteWebsite(QString website, QString username)
 void MainWindow::addEntry()
 {
     // check if all the fields are not empty
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditPassword->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()))
+    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditPassword->text().isEmpty()) ||
+            (ui->lineEditWebsite->text().isEmpty()) || (ui->lineEditKey->text().isEmpty()) )
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
@@ -87,28 +91,36 @@ void MainWindow::addEntry()
         }
         else
         {
-            // addd the password to the database via arduino
-            if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
-                                              ui->lineEditUsername->text(),
-                                              ui->lineEditPassword->text()))
+            // check if the size is correct.
+            if ( !this->isCorrectSize(ui->lineEditKey->text()) || !this->isCorrectSize(ui->lineEditPassword->text()) )
             {
-                // something went wrong
-                QMessageBox::information(NULL, "Information", "Could not add entry");
+                QMessageBox::information(NULL, "Information", "Incorect size for password or key, they should be 16");
+            }
+            else {
+                // addd the password to the database via arduino
+                if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
+                                                  ui->lineEditUsername->text(),
+                                                  ui->lineEditPassword->text(),
+                                                  ui->lineEditKey->text()))
+                {
+                    // something went wrong
+                    QMessageBox::information(NULL, "Information", "Could not add entry");
+                }
             }
         }
     }
 }
 
-void MainWindow::retriveEntry()
+void MainWindow::retrieveEntry()
 {
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()))
+    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) || (ui->lineEditKey->text().isEmpty()))
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
     }
     else
     {
-        //retrive entry
+        //retrieve entry
 
         // check if the connection is made
         if(serialCommunication == nullptr)
@@ -118,11 +130,12 @@ void MainWindow::retriveEntry()
         else
         {
             // send the request to get the entry
-            if (!serialCommunication->retriveEntry(ui->lineEditWebsite->text(),
-                                                  ui->lineEditUsername->text()))
+            if (!serialCommunication->retrieveEntry(ui->lineEditWebsite->text(),
+                                                  ui->lineEditUsername->text(),
+                                                  ui->lineEditKey->text()))
             {
                 // something went wrong
-                QMessageBox::information(NULL, "Information", "Could not retrive entry");
+                QMessageBox::information(NULL, "Information", "Could not retrieve entry");
             }
         }
     }
@@ -157,6 +170,10 @@ void MainWindow::deleteEntry()
 
 void MainWindow::obtainWebsites()
 {
+    //clear the old entries
+    ui->tableWidgetWebsite->clear();
+    ui->tableWidgetWebsite->setRowCount(0);
+
     // check if the connection is made
     if (serialCommunication == nullptr)
     {
@@ -164,16 +181,17 @@ void MainWindow::obtainWebsites()
     }
     else
     {
-        if( serialCommunication->obtainWebsites() )
+        if( !serialCommunication->obtainWebsites() )
         {
-
+            // something went wrong
+            QMessageBox::information(NULL, "Information", "Couldn't obtain websites");
         }
     }
 }
 
+/* Generates passwords */
 void MainWindow::generatePassword()
 {
-    // generate password
 
     // password size
     static const int PASSWORD_SIZE = 16;
@@ -192,10 +210,10 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
 {
     switch (reply) {
     case Utils::ReplyCode::ReplyAddEntry:
-        if( status == "Ok" )
+        if( status == "OK" )
         {
             // everything went fine then also add the entry to the available websites
-            this->addWebsite(ui->lineEditPassword->text(), ui->lineEditPassword->text());
+            this->addWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
             QMessageBox::information(NULL, "Information", "New entry is added");
         }
         else
@@ -205,7 +223,7 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
 
         break;
     case Utils::ReplyCode::ReplyDeleteEntry:
-        if( status == "Ok" )
+        if( status == "OK" )
         {
             // everything went fine
             this->deleteWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
@@ -222,15 +240,51 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
     default:
         break;
     }
+
+    // clear the text in GUI.
+    this->clearGUI();
 }
 
+/* Check if the size of the string is 16, needed for encryption */
+
+/* Should not be used, if password is longer or shorter than 16, they should be adapted
+ * to 16. If the password is longer, still not OK, if is shorter, put also the password
+ * size in password and padding it with some characters until is 18 long( 2 - length +
+ * 16 - password)
+ * then also the length should be store in database, when the decryption is used, to
+ * remove the extra paddings*/
+bool MainWindow::isCorrectSize(QString text) const
+{
+    return text.size() == 16;
+}
+
+/* Clears the text in the GUI */
+void MainWindow::clearGUI()
+{
+    ui->lineEditWebsite->clear();
+    ui->lineEditUsername->clear();
+    ui->lineEditPassword->clear();
+    ui->lineEditKey->clear();
+}
+
+/*
+ *It's safe because I can not execute invalid passwords
+ *If someone tries to execute a malicous command, by setting the password
+ *I split it in letters and execute each letter separtly therefore,
+ *the malicous command is split.
+ */
 void MainWindow::displayPassword(QString password)
 {
     QThread::sleep(5);
+    qDebug() << "Password retrived: " << password;
     for( QString::const_iterator it = password.constBegin(); it != password.constEnd(); ++it )
     {
         std::stringstream s;
         s << "xdotool key " << (*it).toLatin1();
         system(s.str().c_str());
+
+        /*QProcess process;
+        process.startDetached(QString("xdotool key ").append((*it).toLatin1()) );
+        process.waitForStarted(3000);*/
     }
 }

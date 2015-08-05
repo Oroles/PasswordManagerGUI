@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_5">
+   <layout class="QHBoxLayout" name="horizontalLayout_6">
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
@@ -74,6 +74,20 @@
        </layout>
       </item>
       <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>Key</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditKey"/>
+        </item>
+       </layout>
+      </item>
+      <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QPushButton" name="buttonAddEntry">
@@ -83,9 +97,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="buttonRetriveEntry">
+         <widget class="QPushButton" name="buttonRetrieveEntry">
           <property name="text">
-           <string>RetriveEntry</string>
+           <string>RetrieveEntry</string>
           </property>
          </widget>
         </item>

@@ -10,13 +10,9 @@
 #include "utils.h"
 
 /*
- *Sa creez doua pthread unu care sa apeleze metoda de read
- *iar celalalt sa apeleze method the write
- *write-ul citeste dintr-un buffer care este umplut de SerialPort
- *read-ul scrie intr-un buffer care este golit the catre SerialPort prin semnale
- *
- *sau folosesc semnalele de la qiodevice care is simple si trebuie sa fie bune
- *
+ * Compress the string that I send, the compress should be one to one,
+ * otherwise for two websites there will one entry in database
+ * other solution is rangeencoding
  */
 
 class SerialCommunication : public QObject
@@ -26,11 +22,8 @@ public:
     static SerialCommunication *getInstance();
     ~SerialCommunication();
 
-    bool checkPasswordAndUser(const QString &username, const QString &password) const;
-    bool writeNewAccount(const QString& username, const QString &password) const;
-    bool deletePasswordAndUser() const;
-    bool addEntry(const QString &website, const QString &username, const QString &password) const;
-    bool retriveEntry(const QString &website, const QString &username) const;
+    bool addEntry(const QString &website, const QString &username, const QString &password, const QString& key) const;
+    bool retrieveEntry(const QString &website, const QString &username, const QString &key) const;
     bool deleteEntry(const QString& website, const QString& username) const;
     bool obtainWebsites();
 
@@ -49,6 +42,7 @@ signals:
     
 private slots:
     void readBytes();
+    void aboutToClose();
     
 
 private:

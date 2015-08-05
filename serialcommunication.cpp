@@ -4,11 +4,29 @@
 #include <exception>
 #include <QDebug>
 
-/*
- * Compress the string that I send, the compress should be one to one,
- * otherwise for two websites there will one entry in database
- * other solution is rangeencoding
- */
+/* ./serialcommunication.cpp:70:  [2] (misc) open:
+  Check when opening files - can an attacker redirect it (via symlinks),
+  force the opening of special file type (e.g., device files), move
+  things around to create a race condition, control its ancestors, or change
+  its contents?.
+  -- put a file name in config file so it will try to write to it -- doesn't open it
+  -- try to create a symbolic link from /dev/ttyACM0 -> to a file -- doesn't work or I do something wrong,
+                                                                  -- maybe I have to delete one serial port and replace it with another one
+                                                                  -- add user to dialout so I can change the ports
+
+   To resolve this I can send and wait a basic reply that everthing works well
+
+./serialcommunication.cpp:205:  [2] (misc) open:
+  Check when opening files - can an attacker redirect it (via symlinks),
+  force the opening of special file type (e.g., device files), move
+  things around to create a race condition, control its ancestors, or change
+  its contents?.
+
+./mainwindow.cpp:236:  [4] (shell) system:
+  This causes a new program to execute and is difficult to use safely.
+  try using a library call that implements the same functionality if
+  available. -- se comment at the method void MainWindow::displayPassword(QString password)
+*/
 
 bool sendCommand(QSerialPort *port, QString (*ptr_func)())
 {
@@ -49,6 +67,19 @@ bool sendCommand(QSerialPort *port, QString (*ptr_func)(const QString&, const QS
     return bytesWritten == command.size();
 }
 
+bool sendCommand(QSerialPort *port, QString (*ptr_func)(const QString&, const QString&, const QString&, const QString&), const QString& arg1, const QString& arg2, const QString& arg3, const QString arg4)
+{
+    // creates the ccomand
+    QString command = (*ptr_func)(arg1,arg2,arg3,arg4);
+
+    // writes the command
+    qint64 bytesWritten = port->write(QByteArray(command.toStdString().c_str()));
+    port->waitForBytesWritten(3000);
+
+    // checks if the command was written
+    return bytesWritten == command.size();
+}
+
 SerialCommunication* SerialCommunication::getInstance()
 {
     //returns a null pointer if connection could not be open
@@ -73,7 +104,7 @@ SerialCommunication::SerialCommunication(QObject *parent) :
     serialPort = new QSerialPort(m_portName);
 
     // open the port
-    if (serialPort->open(QIODevice::ReadWrite))
+    if (serialPort->open(QIODevice::ReadWrite) && serialPort->isOpen())
     {
         // set configuration from the file config
         serialPort->setBaudRate(m_baudRate);
@@ -90,6 +121,7 @@ SerialCommunication::SerialCommunication(QObject *parent) :
 
     // make the connections
     connect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
+    connect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
 }
 
 SerialCommunication::~SerialCommunication()
@@ -105,52 +137,22 @@ SerialCommunication::~SerialCommunication()
     }
 }
 
-bool SerialCommunication::checkPasswordAndUser(const QString& username,const QString& password) const
+bool SerialCommunication::addEntry(const QString& website, const QString& username, const QString& password, const QString &key) const
 {
     // checks if the port is open then send the command, the reply will be on the function readBytes
     if (serialPort->isOpen())
     {
-        return sendCommand(serialPort, Utils::encodeRequestCheckPasswordAndUser, username, password);
-    }
-    return false;
-}
-
-bool SerialCommunication::writeNewAccount(const QString& username, const QString& password) const
-{
-    // checks if the port is open then send the command, the reply will be on the function readBytes
-    if (serialPort->isOpen())
-    {
-        return sendCommand(serialPort, Utils::encodeRequestWriteNewAccount,username,password);
-    }
-    return false;
-}
-
-bool SerialCommunication::deletePasswordAndUser() const
-{
-    // checks if the port is open then send the command, the reply will be on the function readBytes
-    if (serialPort->isOpen())
-    {
-        return sendCommand(serialPort, Utils::encodeRequestDeletePasswordAndUser);
-    }
-    return false;
-}
-
-bool SerialCommunication::addEntry(const QString& website, const QString& username, const QString& password) const
-{
-    // checks if the port is open then send the command, the reply will be on the function readBytes
-    if (serialPort->isOpen())
-    {
-        return sendCommand(serialPort, Utils::encodeRequestAddEntry, website, username, password);
+        return sendCommand(serialPort, Utils::encodeRequestAddEntry, website, username, password, key);
     }
     return false;
 
 }
-bool SerialCommunication::retriveEntry(const QString& website, const QString& username) const
+bool SerialCommunication::retrieveEntry(const QString& website, const QString& username, const QString& key) const
 {
     // checks if the port is open then send the command, the reply will be on the function readBytes
     if (serialPort->isOpen())
     {
-        return sendCommand(serialPort, Utils::encodeRequestRetriveEntry, website, username);
+        return sendCommand(serialPort, Utils::encodeRequestRetrieveEntry, website, username, key);
     }
     return false;
 }
@@ -180,12 +182,16 @@ void SerialCommunication::readBytes()
     static QString buffer = "";
 
     // read bytes and store them in buffer
-    buffer.append(serialPort->readAll() );
+    buffer.append(serialPort->readAll());
+    qDebug() << buffer;
 
     // check if there is a command in the buffer
     int indexOfNewLine = buffer.indexOf("\n");
     if (indexOfNewLine != -1)
     {
+        /* I should not clear the buffer */
+
+        qDebug() << buffer;
         // there is a command in buffer
 
         // get the command & remove command from buffer
@@ -209,29 +215,27 @@ void SerialCommunication::readBytes()
             case Utils::ReplyCode::ReplyAddEntry:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyAddEntry, "Add Entry return command: ", arg1);
                 break;
-            case Utils::ReplyCode::ReplyCheckPasswordAndUser:
-                emit sendMessageToLogin("Check Password and User: ", arg1);
-                break;
             case Utils::ReplyCode::ReplyDeleteEntry:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyDeleteEntry, "Delete Entry: ", arg1);
-                break;
-            case Utils::ReplyCode::ReplyDeletePasswordAndUser:
-                emit sendMessageToLogin("Delete Password And User: ", arg1);
                 break;
             case Utils::ReplyCode::ReplyObtainWebsites:
                 emit sendNewWebsite(arg1, arg2);
                 break;
-            case Utils::ReplyCode::ReplyRetriveEntry:
+            case Utils::ReplyCode::ReplyRetrieveEntry:
                 emit sendPassword(arg1);
-                break;
-            case Utils::ReplyCode::ReplyWriteNewAccount:
-                emit sendMessageToSingUp("New account: ", arg1);
                 break;
             case Utils::ReplyCode::ReplyError:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Error");
                 break;
         }
     }
+}
+
+void SerialCommunication::aboutToClose()
+{
+    // in this way we force to overwrite the password in the arduino board
+    serialPort->write(QString("5" + Utils::SEPARATOR + Utils::SEPARATOR + Utils::SEPARATOR + "\n").toLatin1());
+    serialPort->waitForBytesWritten(3000);
 }
 
 bool SerialCommunication::readConfiguration()
