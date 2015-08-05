@@ -12,6 +12,7 @@ namespace Utils {
                           ReplyRetrieveEntry,
                           ReplyDeleteEntry,
                           ReplyObtainWebsites,
+                          CloseConnection,
                           ReplyError};
 
     QString getName(QString field, const QList<QByteArray>& list);
@@ -21,8 +22,10 @@ namespace Utils {
     QString encodeRequestRetrieveEntry(const QString& website, const QString& username, const QString &key);
     QString encodeRequestDeleteEntry(const QString& website, const QString& username);
     QString encodeRequestObtainWebsites();
+    QString encodeRequestCloseBluetoothConnection();
 
     ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
+    bool isValidCommand(const QString& command);
 }
 
 #endif // UTILS_H

@@ -56,6 +56,11 @@ namespace Utils {
         return "4\n";
     }
 
+    QString encodeRequestCloseBluetoothConnection()
+    {
+        return "5" + Utils::SEPARATOR + Utils::SEPARATOR + Utils::SEPARATOR + "\n";
+    }
+
     ReplyCode decodeReply(QString reply, QString& arg1, QString& arg2)
     {
         QStringList arguments = reply.split(SEPARATOR);
@@ -78,9 +83,31 @@ namespace Utils {
                 arg1 = arguments[1];
                 arg2 = arguments[2];
                 return ReplyCode::ReplyObtainWebsites;
+            case 5:
+                return ReplyCode::CloseConnection;
             default:
                 qDebug() << "Something wrong with Utils::decodeReply";
                 return ReplyCode::ReplyError;
+        }
+    }
+
+    // checks if there is the right number of arguments
+    bool isValidCommand(const QString& command) {
+        QStringList arguments = command.split(SEPARATOR);
+        switch(arguments[0].toInt())
+        {
+            case 1:
+                return arguments.size() == 2;
+            case 2:
+                return arguments.size() == 2;
+            case 3:
+                return arguments.size() == 2;
+            case 4:
+                return arguments.size() == 3;
+            case 5:
+                return arguments.size() == 4;
+            default:
+                return false;
         }
     }
 }

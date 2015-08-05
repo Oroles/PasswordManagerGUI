@@ -275,7 +275,10 @@ void MainWindow::clearGUI()
  */
 void MainWindow::displayPassword(QString password)
 {
+    this->clearGUI();
+
     QThread::sleep(5);
+
     qDebug() << "Password retrived: " << password;
     for( QString::const_iterator it = password.constBegin(); it != password.constEnd(); ++it )
     {

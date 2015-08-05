@@ -126,14 +126,22 @@ SerialCommunication::SerialCommunication(QObject *parent) :
 
 SerialCommunication::~SerialCommunication()
 {
+    this->closeSerialPort();
+    delete serialPort;
+}
+
+void SerialCommunication::closeSerialPort()
+{
     // if the port is open close it
     if (serialPort != nullptr)
     {
         if (serialPort->isOpen())
         {
+            disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
+            disconnect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
+
             serialPort->close();
         }
-        delete serialPort;
     }
 }
 
@@ -177,30 +185,35 @@ bool SerialCommunication::obtainWebsites()
     return false;
 }
 
+bool SerialCommunication::closeBluetoothConnection()
+{
+    if(serialPort->isOpen())
+    {
+        return sendCommand(serialPort, Utils::encodeRequestCloseBluetoothConnection);
+    }
+    return false;
+}
+
 void SerialCommunication::readBytes()
 {
     static QString buffer = "";
 
     // read bytes and store them in buffer
     buffer.append(serialPort->readAll());
-    qDebug() << buffer;
 
     // check if there is a command in the buffer
     int indexOfNewLine = buffer.indexOf("\n");
-    if (indexOfNewLine != -1)
+    while (indexOfNewLine != -1) // in case there are multiple commands read
     {
-        /* I should not clear the buffer */
-
-        qDebug() << buffer;
         // there is a command in buffer
 
-        // get the command & remove command from buffer
+        // get the command
         QString command = buffer.left(indexOfNewLine);
+        buffer = buffer.right( buffer.size() - indexOfNewLine - 1 ); // -1 to remove the indexOfNewLine
         qDebug() << "Command: " << command;
-        buffer.clear();
         qDebug() << "Buffer: " << buffer;
 
-        if(command == "")
+        if(!Utils::isValidCommand(command))
         {
             // there was something wrong
             return;
@@ -224,6 +237,9 @@ void SerialCommunication::readBytes()
             case Utils::ReplyCode::ReplyRetrieveEntry:
                 emit sendPassword(arg1);
                 break;
+            case Utils::ReplyCode::CloseConnection:
+                this->closeSerialPort();
+                break;
             case Utils::ReplyCode::ReplyError:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Error");
                 break;
@@ -233,9 +249,9 @@ void SerialCommunication::readBytes()
 
 void SerialCommunication::aboutToClose()
 {
-    // in this way we force to overwrite the password in the arduino board
-    serialPort->write(QString("5" + Utils::SEPARATOR + Utils::SEPARATOR + Utils::SEPARATOR + "\n").toLatin1());
-    serialPort->waitForBytesWritten(3000);
+   if (!this->closeBluetoothConnection()){
+       emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Can not close connection");
+   }
 }
 
 bool SerialCommunication::readConfiguration()

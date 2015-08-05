@@ -32,6 +32,10 @@ private:
 
     SerialCommunication(SerialCommunication &rhs) = delete;
     SerialCommunication(SerialCommunication &&rhs) = delete;
+
+    bool readConfiguration();
+    bool closeBluetoothConnection();
+    void closeSerialPort();
     
 signals:
     void sendMessageToLogin(QString msg, QString status);
@@ -48,7 +52,6 @@ private slots:
 private:
     QSerialPort* serialPort;
 
-    bool readConfiguration();
     QString m_portName;
     QSerialPort::BaudRate m_baudRate;
     QSerialPort::DataBits m_dataBits;
