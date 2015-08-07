@@ -200,6 +200,7 @@ void SerialCommunication::readBytes()
 
     // read bytes and store them in buffer
     buffer.append(serialPort->readAll());
+    qDebug() << buffer;
 
     // check if there is a command in the buffer
     int indexOfNewLine = buffer.indexOf("\n");

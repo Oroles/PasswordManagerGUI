@@ -91,21 +91,17 @@ void MainWindow::addEntry()
         }
         else
         {
-            // check if the size is correct.
-            if ( !this->isCorrectSize(ui->lineEditKey->text()) || !this->isCorrectSize(ui->lineEditPassword->text()) )
+            QString fullPassword = Utils::addPadding(ui->lineEditPassword->text());
+            QString fullKey = Utils::addPadding(ui->lineEditKey->text());
+
+            // add the password to the database via arduino
+            if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
+                                              ui->lineEditUsername->text(),
+                                              fullPassword,
+                                              fullKey))
             {
-                QMessageBox::information(NULL, "Information", "Incorect size for password or key, they should be 16");
-            }
-            else {
-                // addd the password to the database via arduino
-                if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
-                                                  ui->lineEditUsername->text(),
-                                                  ui->lineEditPassword->text(),
-                                                  ui->lineEditKey->text()))
-                {
-                    // something went wrong
-                    QMessageBox::information(NULL, "Information", "Could not add entry");
-                }
+                // something went wrong
+                QMessageBox::information(NULL, "Information", "Could not add entry");
             }
         }
     }
@@ -255,7 +251,7 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
  * remove the extra paddings*/
 bool MainWindow::isCorrectSize(QString text) const
 {
-    return text.size() == 16;
+    return text.size() == Utils::KEY_SIZE;
 }
 
 /* Clears the text in the GUI */
@@ -276,6 +272,7 @@ void MainWindow::clearGUI()
 void MainWindow::displayPassword(QString password)
 {
     this->clearGUI();
+    password = Utils::removePadding(password);
 
     QThread::sleep(5);
 

@@ -4,6 +4,8 @@
 #include <QString>
 #include <QDebug>
 
+#include <algorithm>
+
 namespace Utils {
 
     QString getName(QString field, const QList<QByteArray>& list)
@@ -38,27 +40,33 @@ namespace Utils {
 
     QString encodeRequestAddEntry(const QString& website, const QString& username, const QString& password, const QString& key)
     {
-        return "1" + SEPARATOR + website + SEPARATOR + username + SEPARATOR + password +  SEPARATOR + key + "\n";
+        return "1" + SEPARATOR + website +
+                     SEPARATOR + username +
+                     SEPARATOR + password +
+                     SEPARATOR + key + END_COMMAND;
     }
 
     QString encodeRequestRetrieveEntry(const QString &website, const QString &username, const QString& key)
     {
-        return "2" + SEPARATOR + website + SEPARATOR + username + SEPARATOR + key + "\n";
+        return "2" + SEPARATOR + website +
+                     SEPARATOR + username +
+                     SEPARATOR + key + END_COMMAND;
     }
 
     QString encodeRequestDeleteEntry(const QString& website, const QString& username)
     {
-        return "3" + SEPARATOR + website + SEPARATOR + username + "\n";
+        return "3" + SEPARATOR + website +
+                     SEPARATOR + username + END_COMMAND;
     }
 
     QString encodeRequestObtainWebsites()
     {
-        return "4\n";
+        return "4" + END_COMMAND;
     }
 
     QString encodeRequestCloseBluetoothConnection()
     {
-        return "5" + Utils::SEPARATOR + Utils::SEPARATOR + Utils::SEPARATOR + "\n";
+        return "5" + END_COMMAND;
     }
 
     ReplyCode decodeReply(QString reply, QString& arg1, QString& arg2)
@@ -105,9 +113,26 @@ namespace Utils {
             case 4:
                 return arguments.size() == 3;
             case 5:
-                return arguments.size() == 4;
+                return arguments.size() == 2;
             default:
                 return false;
         }
+    }
+
+    QString addPadding(const QString& message) {
+        if (message.size() % KEY_SIZE == 0) {
+            return message;
+        }
+        QString result( message.size() + (KEY_SIZE -( message.size() % KEY_SIZE ) ), PADDING.at(0));
+        std::copy_n(message.begin(), message.size(), result.begin());
+        return result;
+    }
+
+    QString removePadding(const QString& message) {
+        if (message.size() % KEY_SIZE == 0) {
+            return message;
+        }
+        QString result = message.left( message.indexOf(PADDING.at(0)) );
+        return result;
     }
 }
