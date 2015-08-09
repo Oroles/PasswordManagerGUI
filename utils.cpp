@@ -87,4 +87,13 @@ namespace Utils {
                 return false;
         }
     }
+
+    QString generatePassword() {
+        QString password;
+        for( int i = 0; i < PASSWORD_SIZE; ++i)
+        {
+            password.append(QChar(97+qrand()%(122-97)));//generates random small letters
+        }
+        return password;
+    }
 }

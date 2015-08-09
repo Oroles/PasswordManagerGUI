@@ -10,6 +10,7 @@ namespace Utils {
     static const QString PADDING = "\t";
     static const QString END_COMMAND = "\n";
     static const int KEY_SIZE = 16;
+    static const int PASSWORD_SIZE = 16;
 
     enum class ReplyCode {ReplyAddEntry,
                           ReplyRetrieveEntry,
@@ -23,6 +24,7 @@ namespace Utils {
 
     ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
     bool isValidCommand(const QString& command);
+    QString generatePassword();
 
     template <typename T, int size = KEY_SIZE>
     T addPadding(const T& message) {

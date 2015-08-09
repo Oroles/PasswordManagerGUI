@@ -187,17 +187,9 @@ void MainWindow::obtainWebsites()
 /* Generates passwords */
 void MainWindow::generatePassword()
 {
-
-    // password size
-    static const int PASSWORD_SIZE = 16;
-
-    QString password;
-    for( int i = 0; i < PASSWORD_SIZE; ++i)
-    {
-        password.append(QChar(97+qrand()*(122-97)));//generates random small letters
-    }
-
     // assign the password in the password field
+    QString password = Utils::generatePassword();
+    qDebug() << password;
     ui->lineEditPassword->setText(password);
 }
 
@@ -281,9 +273,5 @@ void MainWindow::displayPassword(QString password)
         std::stringstream s;
         s << "xdotool key " << (*it).toLatin1();
         system(s.str().c_str());
-
-        /*QProcess process;
-        process.startDetached(QString("xdotool key ").append((*it).toLatin1()) );
-        process.waitForStarted(3000);*/
     }
 }

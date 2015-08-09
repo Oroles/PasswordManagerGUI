@@ -100,10 +100,10 @@ void SerialCommunication::closeSerialPort()
     {
         if (serialPort->isOpen())
         {
+            serialPort->close();
+
             disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
             disconnect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
-
-            serialPort->close();
         }
     }
 }
