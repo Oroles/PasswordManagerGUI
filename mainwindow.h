@@ -28,7 +28,7 @@ private slots:
     void addWebsite(QString website, QString username);
     void deleteWebsite(QString website, QString username);
     void receiveReply(Utils::ReplyCode, QString message, QString status);
-    void displayPassword(QString password);
+    void displayPassword(QString status, QString password);
     
 private:
     Ui::MainWindow *ui;

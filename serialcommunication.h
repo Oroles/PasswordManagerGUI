@@ -38,11 +38,9 @@ private:
     void closeSerialPort();
     
 signals:
-    void sendMessageToLogin(QString msg, QString status);
-    void sendMessageToSingUp(QString msg, QString status);
     void sendMessageToMain(Utils::ReplyCode, QString msg, QString status);
     void sendNewWebsite(QString website, QString username);
-    void sendPassword(QString password);
+    void sendPassword(QString status, QString password);
     
 private slots:
     void readBytes();

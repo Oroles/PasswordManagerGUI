@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
         // connect serialCommunication with GUI
         connect(serialCommunication, SIGNAL(sendMessageToMain(Utils::ReplyCode,QString,QString)), this, SLOT(receiveReply(Utils::ReplyCode,QString,QString)));
         connect(serialCommunication, SIGNAL(sendNewWebsite(QString,QString)), this, SLOT(addWebsite(QString,QString)));
-        connect(serialCommunication, SIGNAL(sendPassword(QString)), this, SLOT(displayPassword(QString)));
+        connect(serialCommunication, SIGNAL(sendPassword(QString,QString)), this, SLOT(displayPassword(QString,QString)));
     }
 }
 
@@ -260,9 +260,14 @@ void MainWindow::clearGUI()
  *I split it in letters and execute each letter separtly therefore,
  *the malicous command is split.
  */
-void MainWindow::displayPassword(QString password)
+void MainWindow::displayPassword(QString status, QString password)
 {
     this->clearGUI();
+    if ( status == "0") {
+        QMessageBox::information(NULL, "Information", "Could not retrieve entry");
+        return;
+    }
+
     password = Utils::removePadding(password);
 
     QThread::sleep(5);

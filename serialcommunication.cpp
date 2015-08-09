@@ -208,7 +208,7 @@ void SerialCommunication::readBytes()
                 emit sendNewWebsite(arg1, arg2);
                 break;
             case Utils::ReplyCode::ReplyRetrieveEntry:
-                emit sendPassword(arg1);
+                emit sendPassword(arg1, arg2);
                 break;
             case Utils::ReplyCode::CloseConnection:
                 this->closeSerialPort();

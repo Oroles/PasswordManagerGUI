@@ -48,8 +48,9 @@ namespace Utils {
                 arg1 = arguments[1];
                 return ReplyCode::ReplyAddEntry;
             case 2:
-                // set arg1 to the password
+                // set arg1 to the status and arg2 to password
                 arg1 = arguments[1];
+                arg2 = arguments[2];
                 return ReplyCode::ReplyRetrieveEntry;
             case 3:
                 // set arg1 to Ok or Fail
@@ -76,7 +77,7 @@ namespace Utils {
             case 1:
                 return arguments.size() == 2;
             case 2:
-                return arguments.size() == 2;
+                return arguments.size() == 3;
             case 3:
                 return arguments.size() == 2;
             case 4:
