@@ -12,6 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = PasswordManagerGUI
 TEMPLATE = app
 
+QMAKE_CXXFLAGS_WARN_ON += -Wall
 
 SOURCES += main.cpp\
     serialcommunication.cpp \

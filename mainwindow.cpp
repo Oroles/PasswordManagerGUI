@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
     // set table widget
     ui->tableWidgetWebsite->setColumnCount(2);
     ui->tableWidgetWebsite->setHorizontalHeaderItem(0, new QTableWidgetItem("website"));

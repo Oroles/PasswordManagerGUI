@@ -21,17 +21,41 @@ namespace Utils {
     QString getName(QString field, const QList<QByteArray>& list);
     uint getValue(QString field, const QList<QByteArray>& list);
 
-    QString encodeRequestAddEntry(const QString& website, const QString& username, const QString& password, const QString &key);
-    QString encodeRequestRetrieveEntry(const QString& website, const QString& username, const QString &key);
-    QString encodeRequestDeleteEntry(const QString& website, const QString& username);
-    QString encodeRequestObtainWebsites();
-    QString encodeRequestCloseBluetoothConnection();
-
     ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
     bool isValidCommand(const QString& command);
 
-    QString removePadding(const QString& message);
-    QString addPadding(const QString& message);
+    template <typename T, int size = KEY_SIZE>
+    T addPadding(const T& message) {
+        if (message.size() % size == 0) {
+            return message;
+        }
+        T result( message.size() + (size -( message.size() % size ) ), PADDING.at(0));
+        std::copy_n(message.begin(), message.size(), result.begin());
+        return result;
+    }
+
+    template <typename T, int size = KEY_SIZE>
+    T removePadding(const T& message) {
+        if (message.size() % size == 0) {
+            return message;
+        }
+        T result = message.left( message.indexOf(PADDING.at(0)) );
+        return result;
+    }
+
+    template <typename S, typename T>
+    void generateRequest(S& s, T t) {
+        s << t.toLatin1().constData();
+        s << END_COMMAND.toLatin1().constData();
+    }
+
+    template <typename S, typename T, typename... Args>
+    void generateRequest(S& s, T t, Args... args) {
+        s << t.toLatin1().constData();
+        s << SEPARATOR.toLatin1().constData();
+        generateRequest(s, args...);
+    }
+
 }
 
 #endif // UTILS_H
