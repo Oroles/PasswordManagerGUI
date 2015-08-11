@@ -25,6 +25,9 @@ MainWindow::MainWindow(QWidget *parent) :
     // set password mode for password field
     ui->lineEditPassword->setEchoMode(QLineEdit::Password);
 
+    // set read only for text log
+    ui->logTextEdit->setReadOnly(true);
+
     // connections
     connect(ui->buttonGetWebsites, SIGNAL(clicked()), this, SLOT(obtainWebsites()));
     connect(ui->buttonAddEntry, SIGNAL(clicked()), this, SLOT(addEntry()));
@@ -78,6 +81,8 @@ void MainWindow::addEntry()
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+        this->clearGUI();
     }
     else
     {
@@ -87,6 +92,8 @@ void MainWindow::addEntry()
         if(serialCommunication == nullptr)
         {
             QMessageBox::information(NULL, "Information", "Something wrong with the port");
+            ui->logTextEdit->appendPlainText("Something wrong with the port");
+            this->clearGUI();
         }
         else
         {
@@ -101,6 +108,8 @@ void MainWindow::addEntry()
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not add entry");
+                ui->logTextEdit->appendPlainText("Could not add entry");
+                this->clearGUI();
             }
         }
     }
@@ -112,6 +121,8 @@ void MainWindow::retrieveEntry()
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+        this->clearGUI();
     }
     else
     {
@@ -121,6 +132,8 @@ void MainWindow::retrieveEntry()
         if(serialCommunication == nullptr)
         {
             QMessageBox::information(NULL, "Information", "Something wrong with the port");
+            ui->logTextEdit->appendPlainText("Something wrong with the port");
+            this->clearGUI();
         }
         else
         {
@@ -131,6 +144,8 @@ void MainWindow::retrieveEntry()
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not retrieve entry");
+                ui->logTextEdit->appendPlainText("Could not retrieve entry");
+                this->clearGUI();
             }
         }
     }
@@ -142,6 +157,8 @@ void MainWindow::deleteEntry()
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+        this->clearGUI();
     }
     else
     {
@@ -149,6 +166,8 @@ void MainWindow::deleteEntry()
         if (serialCommunication == nullptr)
         {
             QMessageBox::information(NULL, "Information", "Something wrong with the port");
+            ui->logTextEdit->appendPlainText("Something wrong with the port");
+            this->clearGUI();
         }
         else
         {
@@ -158,6 +177,8 @@ void MainWindow::deleteEntry()
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not delete entry");
+                ui->logTextEdit->appendPlainText("Could not delete entry");
+                this->clearGUI();
             }
         }
     }
@@ -173,6 +194,8 @@ void MainWindow::obtainWebsites()
     if (serialCommunication == nullptr)
     {
         QMessageBox::information(NULL, "Information", "Something wrong with the port");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+        this->clearGUI();
     }
     else
     {
@@ -180,6 +203,8 @@ void MainWindow::obtainWebsites()
         {
             // something went wrong
             QMessageBox::information(NULL, "Information", "Couldn't obtain websites");
+            ui->logTextEdit->appendPlainText("Could not obtain entry");
+            this->clearGUI();
         }
     }
 }
@@ -202,6 +227,7 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
             // everything went fine then also add the entry to the available websites
             this->addWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
             QMessageBox::information(NULL, "Information", "New entry is added");
+            ui->logTextEdit->appendPlainText("New entry is added");
         }
         else
         {
@@ -215,6 +241,7 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
             // everything went fine
             this->deleteWebsite(ui->lineEditWebsite->text(), ui->lineEditUsername->text());
             QMessageBox::information(NULL, "Information", "Entry is deleted");
+            ui->logTextEdit->appendPlainText("Entry is deleted");
         }
         else
         {
@@ -265,6 +292,7 @@ void MainWindow::displayPassword(QString status, QString password)
     this->clearGUI();
     if ( status == "0") {
         QMessageBox::information(NULL, "Information", "Could not retrieve entry");
+        ui->logTextEdit->appendPlainText("Could not retrive entry");
         return;
     }
 
