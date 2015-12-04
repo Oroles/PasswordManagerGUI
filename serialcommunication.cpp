@@ -199,7 +199,7 @@ void SerialCommunication::readBytes()
             // based on the type of reply send different type of messages
             // to the GUI
             case Utils::ReplyCode::ReplyAddEntry:
-                emit sendMessageToMain(Utils::ReplyCode::ReplyAddEntry, "Add Entry return command: ", arg1);
+                emit sendMessageToMain(Utils::ReplyCode::ReplyAddEntry, "Add Entry: ", arg1);
                 break;
             case Utils::ReplyCode::ReplyDeleteEntry:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyDeleteEntry, "Delete Entry: ", arg1);
