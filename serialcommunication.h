@@ -22,8 +22,8 @@ public:
     static SerialCommunication *getInstance();
     ~SerialCommunication();
 
-    bool addEntry(const QString &website, const QString &username, const QString &password, const QString& key) const;
-    bool retrieveEntry(const QString &website, const QString &username, const QString &key) const;
+    bool addEntry(const QString &website, const QString &username, const QString &password) const;
+    bool retrieveEntry(const QString &website, const QString &username) const;
     bool deleteEntry(const QString& website, const QString& username) const;
     bool obtainWebsites();
 

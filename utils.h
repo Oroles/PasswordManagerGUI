@@ -24,7 +24,6 @@ namespace Utils {
 
     ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
     bool isValidCommand(const QString& command);
-    QString generatePassword();
 
     template <typename T, int size = KEY_SIZE>
     T addPadding(const T& message) {

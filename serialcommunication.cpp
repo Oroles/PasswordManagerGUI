@@ -35,6 +35,7 @@ bool sendCommand(QSerialPort *port, const std::string& command)
     qint64 bytesWritten = port->write(QByteArray(command.c_str()));
     port->waitForBytesWritten(3000);
 
+
     if (bytesWritten == -1) {
         return false;
     }
@@ -84,7 +85,7 @@ SerialCommunication::SerialCommunication(QObject *parent) :
 
     // make the connections
     connect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
-    connect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
+    //connect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
 }
 
 SerialCommunication::~SerialCommunication()
@@ -100,33 +101,35 @@ void SerialCommunication::closeSerialPort()
     {
         if (serialPort->isOpen())
         {
+            closeBluetoothConnection();
+
             serialPort->close();
 
             disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
-            disconnect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
+            //disconnect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
         }
     }
 }
 
-bool SerialCommunication::addEntry( const QString& website, const QString& username, const QString& password, const QString &key) const
+bool SerialCommunication::addEntry( const QString& website, const QString& username, const QString& password) const
 {
     // checks if the port is open then send the command, the reply will be on the function readBytes
     if (serialPort->isOpen())
     {
         std::stringstream stream;
-        Utils::generateRequest(stream, QString("1"), website, username, password, key);
+        Utils::generateRequest(stream, QString("1"), website, username, password);
         return sendCommand(serialPort, stream.str());
     }
     return false;
 }
 
-bool SerialCommunication::retrieveEntry(const QString& website, const QString& username, const QString& key) const
+bool SerialCommunication::retrieveEntry(const QString& website, const QString& username) const
 {
     // checks if the port is open then send the command, the reply will be on the function readBytes
     if (serialPort->isOpen())
     {
         std::stringstream stream;
-        Utils::generateRequest(stream, QString("2"), website, username, key);
+        Utils::generateRequest(stream, QString("2"), website, username);
         return sendCommand(serialPort, stream.str());
     }
     return false;

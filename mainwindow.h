@@ -24,7 +24,6 @@ private slots:
     void addEntry();
     void retrieveEntry();
     void deleteEntry();
-    void generatePassword();
     void addWebsite(QString website, QString username);
     void deleteWebsite(QString website, QString username);
     void receiveReply(Utils::ReplyCode, QString message, QString status);

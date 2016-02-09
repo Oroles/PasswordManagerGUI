@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    this->setWindowTitle("Password Managers");
+
     // set table widget
     ui->tableWidgetWebsite->setColumnCount(2);
     ui->tableWidgetWebsite->setHorizontalHeaderItem(0, new QTableWidgetItem("website"));
@@ -32,7 +34,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->buttonGetWebsites, SIGNAL(clicked()), this, SLOT(obtainWebsites()));
     connect(ui->buttonAddEntry, SIGNAL(clicked()), this, SLOT(addEntry()));
     connect(ui->buttonRetrieveEntry, SIGNAL(clicked()), this, SLOT(retrieveEntry()));
-    connect(ui->buttonGeneratePassword, SIGNAL(clicked()), this, SLOT(generatePassword()));
     connect(ui->buttonDeleteEntry, SIGNAL(clicked()), this, SLOT(deleteEntry()));
 
     if ( serialCommunication != nullptr )
@@ -76,8 +77,7 @@ void MainWindow::deleteWebsite(QString website, QString username)
 void MainWindow::addEntry()
 {
     // check if all the fields are not empty
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditPassword->text().isEmpty()) ||
-            (ui->lineEditWebsite->text().isEmpty()) || (ui->lineEditKey->text().isEmpty()) )
+    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditPassword->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) )
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
@@ -98,13 +98,11 @@ void MainWindow::addEntry()
         else
         {
             QString fullPassword = Utils::addPadding(ui->lineEditPassword->text());
-            QString fullKey = Utils::addPadding(ui->lineEditKey->text());
 
             // add the password to the database via arduino
             if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
                                               ui->lineEditUsername->text(),
-                                              fullPassword,
-                                              fullKey))
+                                              fullPassword))
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not add entry");
@@ -117,7 +115,7 @@ void MainWindow::addEntry()
 
 void MainWindow::retrieveEntry()
 {
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) || (ui->lineEditKey->text().isEmpty()))
+    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) )
     {
         // not all information is filled
         QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
@@ -139,8 +137,7 @@ void MainWindow::retrieveEntry()
         {
             // send the request to get the entry
             if (!serialCommunication->retrieveEntry(ui->lineEditWebsite->text(),
-                                                  ui->lineEditUsername->text(),
-                                                  ui->lineEditKey->text()))
+                                                  ui->lineEditUsername->text()))
             {
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not retrieve entry");
@@ -187,7 +184,7 @@ void MainWindow::deleteEntry()
 void MainWindow::obtainWebsites()
 {
     //clear the old entries
-    ui->tableWidgetWebsite->clear();
+    ui->tableWidgetWebsite->clearContents();
     ui->tableWidgetWebsite->setRowCount(0);
 
     // check if the connection is made
@@ -207,15 +204,6 @@ void MainWindow::obtainWebsites()
             this->clearGUI();
         }
     }
-}
-
-/* Generates passwords */
-void MainWindow::generatePassword()
-{
-    // assign the password in the password field
-    QString password = Utils::generatePassword();
-    qDebug() << password;
-    ui->lineEditPassword->setText(password);
 }
 
 void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString status)
@@ -278,7 +266,6 @@ void MainWindow::clearGUI()
     ui->lineEditWebsite->clear();
     ui->lineEditUsername->clear();
     ui->lineEditPassword->clear();
-    ui->lineEditKey->clear();
 }
 
 /*
@@ -296,7 +283,10 @@ void MainWindow::displayPassword(QString status, QString password)
         return;
     }
 
-    password = Utils::removePadding(password);
+    //Not working figure out why
+    //password = Utils::removePadding(password);
+
+    password = password.left( password.indexOf('\t') );
 
     QThread::sleep(5);
 
