@@ -3,11 +3,10 @@
 
 #include <QMessageBox>
 #include <QStringList>
-#include <QThread>
-#include <sstream>
 #include <QDebug>
-#include <QProcess>
 #include <QHeaderView>
+
+#include "inserterthread.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -288,13 +287,9 @@ void MainWindow::displayPassword(QString status, QString password)
 
     password = password.left( password.indexOf('\t') );
 
-    QThread::sleep(5);
+    QMessageBox::information(NULL, "Information", "After you close this, you have 5 secs to select where to insert password!");
 
-    qDebug() << "Password retrived: " << password;
-    for( QString::const_iterator it = password.constBegin(); it != password.constEnd(); ++it )
-    {
-        std::stringstream s;
-        s << "xdotool key " << (*it).toLatin1();
-        system(s.str().c_str());
-    }
+    InserterThread* worker = new InserterThread(password);
+    connect(worker, &InserterThread::finished, worker, &InserterThread::deleteLater);
+    worker->start();
 }
