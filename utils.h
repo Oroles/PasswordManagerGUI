@@ -6,17 +6,18 @@
 #include <QString>
 
 namespace Utils {
-    static const QString SEPARATOR = ":";
+    static const QString SEPARATOR = "\r";
     static const QString PADDING = "\t";
     static const QString END_COMMAND = "\n";
     static const int KEY_SIZE = 16;
     static const int PASSWORD_SIZE = 16;
 
     enum class ReplyCode {ReplyAddEntry,
-                          ReplyRetrieveEntry,
+                          /*ReplyRetrieveEntry,*/
                           ReplyDeleteEntry,
                           ReplyObtainWebsites,
-                          CloseConnection,
+                          ReplyPasswordGenerated,
+                          /*CloseConnection,*/
                           ReplyError};
 
     QString getName(QString field, const QList<QByteArray>& list);

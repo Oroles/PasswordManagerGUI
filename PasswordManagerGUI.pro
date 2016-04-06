@@ -12,6 +12,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = PasswordManagerGUI
 TEMPLATE = app
 
+CONFIG += -static-runtime
+
 QMAKE_CXXFLAGS_WARN_ON += -Wall
 
 SOURCES += main.cpp\
@@ -26,6 +28,5 @@ HEADERS  += \
     utils.h \
     inserterthread.h
 
-FORMS    += loginwindow.ui \
-    signupwindow.ui \
+FORMS    += \
     mainwindow.ui

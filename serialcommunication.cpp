@@ -85,7 +85,6 @@ SerialCommunication::SerialCommunication(QObject *parent) :
 
     // make the connections
     connect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
-    //connect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
 }
 
 SerialCommunication::~SerialCommunication()
@@ -106,7 +105,6 @@ void SerialCommunication::closeSerialPort()
             serialPort->close();
 
             disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
-            //disconnect(serialPort, SIGNAL(aboutToClose()), this, SLOT(aboutToClose()));
         }
     }
 }
@@ -118,6 +116,17 @@ bool SerialCommunication::addEntry( const QString& website, const QString& usern
     {
         std::stringstream stream;
         Utils::generateRequest(stream, QString("1"), website, username, password);
+        return sendCommand(serialPort, stream.str());
+    }
+    return false;
+}
+
+bool SerialCommunication::addEntryAndGenerate(const QString &website, const QString &username, const QString &types, const QString &passwordLength) const
+{
+    if (serialPort->isOpen())
+    {
+        std::stringstream stream;
+        Utils::generateRequest(stream, QString("7"), website, username, types, passwordLength);
         return sendCommand(serialPort, stream.str());
     }
     return false;
@@ -185,7 +194,11 @@ void SerialCommunication::readBytes()
 
         // get the command
         QString command = buffer.left(indexOfNewLine);
+        QString tmp = buffer;
         buffer = buffer.right( buffer.size() - indexOfNewLine - 1 ); // -1 to remove the indexOfNewLine
+        if ( tmp == buffer ) {
+            buffer = "";
+        }
         qDebug() << "Command: " << command;
         qDebug() << "Buffer: " << buffer;
 
@@ -210,24 +223,22 @@ void SerialCommunication::readBytes()
             case Utils::ReplyCode::ReplyObtainWebsites:
                 emit sendNewWebsite(arg1, arg2);
                 break;
-            case Utils::ReplyCode::ReplyRetrieveEntry:
+            case Utils::ReplyCode::ReplyPasswordGenerated:
+                emit sendMessageToMain(Utils::ReplyCode::ReplyPasswordGenerated, "Password generated", arg1);
+                break;
+            /*case Utils::ReplyCode::ReplyRetrieveEntry:
                 emit sendPassword(arg1, arg2);
-                break;
-            case Utils::ReplyCode::CloseConnection:
+                break;*/
+            /*case Utils::ReplyCode::CloseConnection:
                 this->closeSerialPort();
-                break;
+                break;*/
             case Utils::ReplyCode::ReplyError:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Error");
                 break;
+            default:
+                qDebug() << "Error unknown type\n";
         }
     }
-}
-
-void SerialCommunication::aboutToClose()
-{
-   if (!this->closeBluetoothConnection()){
-       emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Can not close connection");
-   }
 }
 
 bool SerialCommunication::readConfiguration()

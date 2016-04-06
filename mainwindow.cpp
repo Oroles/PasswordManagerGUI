@@ -34,13 +34,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->buttonAddEntry, SIGNAL(clicked()), this, SLOT(addEntry()));
     connect(ui->buttonRetrieveEntry, SIGNAL(clicked()), this, SLOT(retrieveEntry()));
     connect(ui->buttonDeleteEntry, SIGNAL(clicked()), this, SLOT(deleteEntry()));
+    connect(ui->buttonAddEntryAndGenerate, SIGNAL(clicked()), this, SLOT(addEntryAndGenerate()));
 
     if ( serialCommunication != nullptr )
     {
         // connect serialCommunication with GUI
         connect(serialCommunication, SIGNAL(sendMessageToMain(Utils::ReplyCode,QString,QString)), this, SLOT(receiveReply(Utils::ReplyCode,QString,QString)));
         connect(serialCommunication, SIGNAL(sendNewWebsite(QString,QString)), this, SLOT(addWebsite(QString,QString)));
-        connect(serialCommunication, SIGNAL(sendPassword(QString,QString)), this, SLOT(displayPassword(QString,QString)));
+        //connect(serialCommunication, SIGNAL(sendPassword(QString,QString)), this, SLOT(displayPassword(QString,QString)));
     }
 }
 
@@ -112,6 +113,59 @@ void MainWindow::addEntry()
     }
 }
 
+QString generateAllowTypes(bool allowSymbols, bool allowNumbers, bool allowLetters)
+{
+    if ((allowSymbols == false) && (allowNumbers == false) && (allowLetters == true)) return "1";
+    if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == false)) return "2";
+    if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == true)) return "3";
+    if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == false)) return "4";
+    if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == true)) return "5";
+    if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == false)) return "6";
+    if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == true)) return "7";
+    return "0";
+}
+
+void MainWindow::addEntryAndGenerate()
+{
+    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()))
+    {
+        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+        this->clearGUI();
+    }
+    else
+    {
+        if(!ui->checkBoxLetters->isChecked() && !ui->checkBoxNumbers->isChecked() && !ui->checkBoxSymbols->isChecked())
+        {
+            QMessageBox::information(NULL, "Information", "Not at leaset one checkbox is selected");
+            ui->logTextEdit->appendPlainText("Not at least one checkbox is selected");
+        }
+        else
+        {
+            if(serialCommunication == nullptr)
+            {
+                QMessageBox::information(NULL, "Information", "Something wrong with the port");
+                ui->logTextEdit->appendPlainText("Something wrong with the port");
+                this->clearGUI();
+            }
+            else
+            {
+                QString passwordLength = ui->spinBoxLength->text();
+                QString allowedTypes = generateAllowTypes(ui->checkBoxSymbols->isChecked(), ui->checkBoxNumbers->isChecked(), ui->checkBoxLetters->isChecked());
+                if (!serialCommunication->addEntryAndGenerate(ui->lineEditWebsite->text(),
+                                                              ui->lineEditUsername->text(),
+                                                              allowedTypes,
+                                                              passwordLength))
+                {
+                    QMessageBox::information(NULL, "Information", "Could not add entry with password");
+                    ui->logTextEdit->appendPlainText("Could not add entry");
+                    this->clearGUI();
+                }
+            }
+        }
+    }
+}
+
 void MainWindow::retrieveEntry()
 {
     if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) )
@@ -141,8 +195,8 @@ void MainWindow::retrieveEntry()
                 // something went wrong
                 QMessageBox::information(NULL, "Information", "Could not retrieve entry");
                 ui->logTextEdit->appendPlainText("Could not retrieve entry");
-                this->clearGUI();
             }
+            this->clearGUI();
         }
     }
 }
@@ -235,6 +289,9 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
             QMessageBox::information(NULL, message, status);
         }
         break;
+    case Utils::ReplyCode::ReplyPasswordGenerated:
+        QMessageBox::information(NULL, message, status);
+        return;
     case Utils::ReplyCode::ReplyError:
         QMessageBox::information(NULL, message, status);
         break;
@@ -246,50 +303,10 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
     this->clearGUI();
 }
 
-/* Check if the size of the string is 16, needed for encryption */
-
-/* Should not be used, if password is longer or shorter than 16, they should be adapted
- * to 16. If the password is longer, still not OK, if is shorter, put also the password
- * size in password and padding it with some characters until is 18 long( 2 - length +
- * 16 - password)
- * then also the length should be store in database, when the decryption is used, to
- * remove the extra paddings*/
-bool MainWindow::isCorrectSize(QString text) const
-{
-    return text.size() == Utils::KEY_SIZE;
-}
-
 /* Clears the text in the GUI */
 void MainWindow::clearGUI()
 {
     ui->lineEditWebsite->clear();
     ui->lineEditUsername->clear();
     ui->lineEditPassword->clear();
-}
-
-/*
- *It's safe because I can not execute invalid passwords
- *If someone tries to execute a malicous command, by setting the password
- *I split it in letters and execute each letter separtly therefore,
- *the malicous command is split.
- */
-void MainWindow::displayPassword(QString status, QString password)
-{
-    this->clearGUI();
-    if ( status == "0") {
-        QMessageBox::information(NULL, "Information", "Could not retrieve entry");
-        ui->logTextEdit->appendPlainText("Could not retrive entry");
-        return;
-    }
-
-    //Not working figure out why
-    //password = Utils::removePadding(password);
-
-    password = password.left( password.indexOf('\t') );
-
-    QMessageBox::information(NULL, "Information", "After you close this, you have 5 secs to select where to insert password!");
-
-    InserterThread* worker = new InserterThread(password);
-    connect(worker, &InserterThread::finished, worker, &InserterThread::deleteLater);
-    worker->start();
 }

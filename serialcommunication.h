@@ -23,6 +23,7 @@ public:
     ~SerialCommunication();
 
     bool addEntry(const QString &website, const QString &username, const QString &password) const;
+    bool addEntryAndGenerate(const QString &website, const QString &username, const QString &types, const QString &passwordLength) const;
     bool retrieveEntry(const QString &website, const QString &username) const;
     bool deleteEntry(const QString& website, const QString& username) const;
     bool obtainWebsites();
@@ -40,11 +41,10 @@ private:
 signals:
     void sendMessageToMain(Utils::ReplyCode, QString msg, QString status);
     void sendNewWebsite(QString website, QString username);
-    void sendPassword(QString status, QString password);
+    //void sendPassword(QString status, QString password);
     
 private slots:
     void readBytes();
-    void aboutToClose();
     
 
 private:

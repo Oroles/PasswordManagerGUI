@@ -47,11 +47,11 @@ namespace Utils {
                 // set arg1 to Ok or Fail
                 arg1 = arguments[1];
                 return ReplyCode::ReplyAddEntry;
-            case 2:
+            /*case 2:
                 // set arg1 to the status and arg2 to password
                 arg1 = arguments[1];
                 arg2 = arguments[2];
-                return ReplyCode::ReplyRetrieveEntry;
+                return ReplyCode::ReplyRetrieveEntry;*/
             case 3:
                 // set arg1 to Ok or Fail
                 arg1 = arguments[1];
@@ -61,8 +61,11 @@ namespace Utils {
                 arg1 = arguments[1];
                 arg2 = arguments[2];
                 return ReplyCode::ReplyObtainWebsites;
-            case 5:
-                return ReplyCode::CloseConnection;
+            case 7:
+                arg1 = arguments[1];
+                return ReplyCode::ReplyPasswordGenerated;
+            /*case 5:
+                return ReplyCode::CloseConnection;*/
             default:
                 qDebug() << "Something wrong with Utils::decodeReply";
                 return ReplyCode::ReplyError;
@@ -84,6 +87,8 @@ namespace Utils {
                 return arguments.size() == 3;
             case 5:
                 return arguments.size() == 2;
+            case 7:
+                return true;
             default:
                 return false;
         }

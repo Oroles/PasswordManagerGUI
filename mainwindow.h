@@ -24,16 +24,16 @@ private slots:
     void addEntry();
     void retrieveEntry();
     void deleteEntry();
+    void addEntryAndGenerate();
     void addWebsite(QString website, QString username);
     void deleteWebsite(QString website, QString username);
     void receiveReply(Utils::ReplyCode, QString message, QString status);
-    void displayPassword(QString status, QString password);
+    //void displayPassword(QString status, QString password);
     
 private:
     Ui::MainWindow *ui;
     SerialCommunication* serialCommunication;
 
-    bool isCorrectSize(QString text) const;
     void clearGUI();
 };
 
