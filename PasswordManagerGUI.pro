@@ -19,14 +19,12 @@ QMAKE_CXXFLAGS_WARN_ON += -Wall
 SOURCES += main.cpp\
     serialcommunication.cpp \
     mainwindow.cpp \
-    utils.cpp \
-    inserterthread.cpp
+    utils.cpp
 
 HEADERS  += \
     serialcommunication.h \
     mainwindow.h \
-    utils.h \
-    inserterthread.h
+    utils.h
 
 FORMS    += \
     mainwindow.ui

@@ -6,6 +6,8 @@
 #include <QSerialPortInfo>
 #include <QList>
 #include <QPair>
+#include <QTimer>
+#include <memory>
 
 #include "utils.h"
 
@@ -19,7 +21,6 @@ class SerialCommunication : public QObject
 {
     Q_OBJECT
 public:
-    static SerialCommunication *getInstance();
     ~SerialCommunication();
 
     bool addEntry(const QString &website, const QString &username, const QString &password) const;
@@ -27,35 +28,28 @@ public:
     bool retrieveEntry(const QString &website, const QString &username) const;
     bool deleteEntry(const QString& website, const QString& username) const;
     bool obtainWebsites();
+    bool checkCorrectPort();
+    bool isPortOpened();
 
-private:
-    explicit SerialCommunication(QObject *parent = 0);
+    explicit SerialCommunication(QObject *parent, const QString name, int baudRate, int databits, int parity, int stopBits, int flowControl);
 
     SerialCommunication(SerialCommunication &rhs) = delete;
     SerialCommunication(SerialCommunication &&rhs) = delete;
 
-    bool readConfiguration();
-    bool closeBluetoothConnection();
     void closeSerialPort();
     
 signals:
     void sendMessageToMain(Utils::ReplyCode, QString msg, QString status);
     void sendNewWebsite(QString website, QString username);
-    //void sendPassword(QString status, QString password);
     
 private slots:
     void readBytes();
-    
 
 private:
-    QSerialPort* serialPort;
+    bool m_isPortOpened;
+    QTimer m_openPortTimer;
 
-    QString m_portName;
-    QSerialPort::BaudRate m_baudRate;
-    QSerialPort::DataBits m_dataBits;
-    QSerialPort::Parity m_parity;
-    QSerialPort::StopBits m_stopBits;
-    QSerialPort::FlowControl m_flowControl;
+    std::shared_ptr<QSerialPort> serialPort;
 };
 
 #endif // SERIALCOMMUNICATION_H

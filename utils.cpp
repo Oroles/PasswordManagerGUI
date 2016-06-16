@@ -1,8 +1,11 @@
 #include "utils.h"
 
+#include <QFile>
+#include <QMessageBox>
 #include <QStringList>
 #include <QString>
 #include <QDebug>
+
 
 #include <algorithm>
 
@@ -47,11 +50,6 @@ namespace Utils {
                 // set arg1 to Ok or Fail
                 arg1 = arguments[1];
                 return ReplyCode::ReplyAddEntry;
-            /*case 2:
-                // set arg1 to the status and arg2 to password
-                arg1 = arguments[1];
-                arg2 = arguments[2];
-                return ReplyCode::ReplyRetrieveEntry;*/
             case 3:
                 // set arg1 to Ok or Fail
                 arg1 = arguments[1];
@@ -62,10 +60,13 @@ namespace Utils {
                 arg2 = arguments[2];
                 return ReplyCode::ReplyObtainWebsites;
             case 7:
+                // set the message geneterated or failed
                 arg1 = arguments[1];
                 return ReplyCode::ReplyPasswordGenerated;
-            /*case 5:
-                return ReplyCode::CloseConnection;*/
+            case 5:
+                // seth the message that is the correct port
+                arg1 = arguments[1];
+                return ReplyCode::ReplyCorrectPort;
             default:
                 qDebug() << "Something wrong with Utils::decodeReply";
                 return ReplyCode::ReplyError;
@@ -92,5 +93,37 @@ namespace Utils {
             default:
                 return false;
         }
+    }
+
+    QString generateAllowTypes(bool allowSymbols, bool allowNumbers, bool allowLetters)
+    {
+        if ((allowSymbols == false) && (allowNumbers == false) && (allowLetters == true)) return "1";
+        if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == false)) return "2";
+        if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == true)) return "3";
+        if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == false)) return "4";
+        if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == true)) return "5";
+        if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == false)) return "6";
+        if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == true)) return "7";
+        return "0";
+    }
+
+    QVector<QString> readDictionary(const QString &filename, int length, bool(*f)(int,int))
+    {
+        QVector<QString> dictionar;
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly)) {
+            QMessageBox::information(NULL, "Information", "Couldn't open the database");
+        }
+
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString word = in.readLine();
+            if (f(word.size(), length))
+            {
+                dictionar.push_back(word);
+            }
+        }
+        std::sort(dictionar.begin(), dictionar.end());
+        return dictionar;
     }
 }

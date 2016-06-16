@@ -5,36 +5,11 @@
 #include <sstream>
 #include <QDebug>
 
-/* ./serialcommunication.cpp:70:  [2] (misc) open:
-  Check when opening files - can an attacker redirect it (via symlinks),
-  force the opening of special file type (e.g., device files), move
-  things around to create a race condition, control its ancestors, or change
-  its contents?.
-  -- put a file name in config file so it will try to write to it -- doesn't open it
-  -- try to create a symbolic link from /dev/ttyACM0 -> to a file -- doesn't work or I do something wrong,
-                                                                  -- maybe I have to delete one serial port and replace it with another one
-                                                                  -- add user to dialout so I can change the ports
-
-   To resolve this I can send and wait a basic reply that everthing works well
-
-./serialcommunication.cpp:205:  [2] (misc) open:
-  Check when opening files - can an attacker redirect it (via symlinks),
-  force the opening of special file type (e.g., device files), move
-  things around to create a race condition, control its ancestors, or change
-  its contents?.
-
-./mainwindow.cpp:236:  [4] (shell) system:
-  This causes a new program to execute and is difficult to use safely.
-  try using a library call that implements the same functionality if
-  available. -- se comment at the method void MainWindow::displayPassword(QString password)
-*/
-
-bool sendCommand(QSerialPort *port, const std::string& command)
+bool sendCommand(std::shared_ptr<QSerialPort> port, const std::string& command)
 {
     // writes the command
     qint64 bytesWritten = port->write(QByteArray(command.c_str()));
     port->waitForBytesWritten(3000);
-
 
     if (bytesWritten == -1) {
         return false;
@@ -44,39 +19,22 @@ bool sendCommand(QSerialPort *port, const std::string& command)
     return bytesWritten == command.size();
 }
 
-SerialCommunication* SerialCommunication::getInstance()
-{
-    //returns a null pointer if connection could not be open
-    try
-    {
-        static SerialCommunication serialCommunication;
-        return &serialCommunication;
-    }
-    catch(...)
-    {
-        return nullptr;
-    }
-}
-
-SerialCommunication::SerialCommunication(QObject *parent) :
+SerialCommunication::SerialCommunication(QObject* parent, const QString name, int baudRate, int dataBits, int parity, int stopBits, int flowControl) :
     QObject(parent),
+    m_isPortOpened(false),
     serialPort(nullptr)
 {
-    this->readConfiguration();
-
-    // read data from a file and updates the serial port
-    serialPort = new QSerialPort(m_portName);
+    serialPort = std::make_shared<QSerialPort>(name);
 
     // open the port
     if (serialPort->open(QIODevice::ReadWrite) && serialPort->isOpen())
     {
         // set configuration from the file config
-        serialPort->setBaudRate(m_baudRate);
-        serialPort->setDataBits(m_dataBits);
-        serialPort->setParity(m_parity);
-        serialPort->setStopBits(m_stopBits);
-        serialPort->setFlowControl(m_flowControl);
-        qDebug() << "Port opened";
+        serialPort->setBaudRate(static_cast<QSerialPort::BaudRate>(baudRate));
+        serialPort->setDataBits(static_cast<QSerialPort::DataBits>(dataBits));
+        serialPort->setParity(static_cast<QSerialPort::Parity>(parity));
+        serialPort->setStopBits(static_cast<QSerialPort::StopBits>(stopBits));
+        serialPort->setFlowControl(static_cast<QSerialPort::FlowControl>(flowControl));
     }
     else
     {
@@ -84,13 +42,24 @@ SerialCommunication::SerialCommunication(QObject *parent) :
     }
 
     // make the connections
-    connect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
+    connect(serialPort.get(), SIGNAL(readyRead()), this, SLOT(readBytes()));
+
+    //set the connection of the timer
+    connect(&m_openPortTimer, &QTimer::timeout, [=]() {
+        if ( !m_isPortOpened )
+        {
+            emit sendMessageToMain(Utils::ReplyCode::ReplyCorrectPort, "Port status:", "Try another port");
+        }
+    });
+
+    m_openPortTimer.setInterval(1000);
+    m_openPortTimer.setSingleShot(true);
+    m_openPortTimer.start();
 }
 
 SerialCommunication::~SerialCommunication()
 {
     this->closeSerialPort();
-    delete serialPort;
 }
 
 void SerialCommunication::closeSerialPort()
@@ -100,11 +69,8 @@ void SerialCommunication::closeSerialPort()
     {
         if (serialPort->isOpen())
         {
-            closeBluetoothConnection();
-
             serialPort->close();
-
-            disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(readBytes()));
+            disconnect(serialPort.get(), SIGNAL(readyRead()), this, SLOT(readBytes()));
         }
     }
 }
@@ -168,15 +134,21 @@ bool SerialCommunication::obtainWebsites()
     return false;
 }
 
-bool SerialCommunication::closeBluetoothConnection()
+bool SerialCommunication::checkCorrectPort()
 {
-    if(serialPort->isOpen())
+    // check if the port is open then sent the command, the reply will be on the function readBytes
+    if (serialPort->isOpen())
     {
         std::stringstream stream;
         Utils::generateRequest(stream, QString("5"));
         return sendCommand(serialPort, stream.str());
     }
     return false;
+}
+
+bool SerialCommunication::isPortOpened()
+{
+    return m_isPortOpened;
 }
 
 void SerialCommunication::readBytes()
@@ -224,14 +196,12 @@ void SerialCommunication::readBytes()
                 emit sendNewWebsite(arg1, arg2);
                 break;
             case Utils::ReplyCode::ReplyPasswordGenerated:
-                emit sendMessageToMain(Utils::ReplyCode::ReplyPasswordGenerated, "Password generated", arg1);
+                emit sendMessageToMain(Utils::ReplyCode::ReplyPasswordGenerated, "Password generated:", arg1);
                 break;
-            /*case Utils::ReplyCode::ReplyRetrieveEntry:
-                emit sendPassword(arg1, arg2);
-                break;*/
-            /*case Utils::ReplyCode::CloseConnection:
-                this->closeSerialPort();
-                break;*/
+            case Utils::ReplyCode::ReplyCorrectPort:
+                m_isPortOpened = true;
+                emit sendMessageToMain(Utils::ReplyCode::ReplyCorrectPort, "Port status:", arg1);
+                break;
             case Utils::ReplyCode::ReplyError:
                 emit sendMessageToMain(Utils::ReplyCode::ReplyError, "Something wrong: ","Error");
                 break;
@@ -239,35 +209,4 @@ void SerialCommunication::readBytes()
                 qDebug() << "Error unknown type\n";
         }
     }
-}
-
-bool SerialCommunication::readConfiguration()
-{
-    /*Reads the configuration for the port
-     *from the file. Return true is everything
-     *could be read, return false otherwhise
-     */
-    QFile configurationFile("config");
-
-    // tests if the file was found
-    if(!configurationFile.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-        return false;
-    }
-
-    // reads each line in memory
-    QList<QByteArray> lines;
-    while (!configurationFile.atEnd())
-    {
-        lines.append(configurationFile.readLine());
-    }
-
-    // updates serial port
-    m_portName = Utils::getName("Name", lines);
-    m_baudRate = static_cast<QSerialPort::BaudRate>(Utils::getValue("BaudRate", lines));
-    m_dataBits = static_cast<QSerialPort::DataBits>(Utils::getValue("DataBits", lines));
-    m_parity = static_cast<QSerialPort::Parity>(Utils::getValue("Parity", lines));
-    m_stopBits = static_cast<QSerialPort::StopBits>(Utils::getValue("StopBits", lines));
-    m_flowControl = static_cast<QSerialPort::FlowControl>(Utils::getValue("FlowControl", lines));
-    return true;
 }

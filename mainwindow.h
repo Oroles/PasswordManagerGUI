@@ -5,6 +5,9 @@
 #include "utils.h"
 
 #include <QMainWindow>
+#include <QLineEdit>
+//#include <QTimer>
+#include <memory>
 
 
 namespace Ui {
@@ -19,6 +22,12 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    bool isFillupFiedls(QList<QLineEdit*> fields, const QString& errorMessage);
+    bool checkAvailablePort(const QString& errorMessage);
+
+private:
+    //void readDictionary(const QString& filename);
+
 private slots:
     void obtainWebsites();
     void addEntry();
@@ -28,11 +37,15 @@ private slots:
     void addWebsite(QString website, QString username);
     void deleteWebsite(QString website, QString username);
     void receiveReply(Utils::ReplyCode, QString message, QString status);
-    //void displayPassword(QString status, QString password);
+    void openPort();
     
 private:
     Ui::MainWindow *ui;
-    SerialCommunication* serialCommunication;
+
+    //QTimer availablePortTimer;
+    std::unique_ptr<SerialCommunication, Utils::Deleter<SerialCommunication>> serialCommunication;
+
+    QVector<QString> dictionar;
 
     void clearGUI();
 };

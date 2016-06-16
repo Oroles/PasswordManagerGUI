@@ -6,12 +6,10 @@
 #include <QDebug>
 #include <QHeaderView>
 
-#include "inserterthread.h"
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    serialCommunication(SerialCommunication::getInstance())
+    serialCommunication(nullptr, Utils::Deleter<SerialCommunication>())
 {
     ui->setupUi(this);
 
@@ -35,14 +33,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->buttonRetrieveEntry, SIGNAL(clicked()), this, SLOT(retrieveEntry()));
     connect(ui->buttonDeleteEntry, SIGNAL(clicked()), this, SLOT(deleteEntry()));
     connect(ui->buttonAddEntryAndGenerate, SIGNAL(clicked()), this, SLOT(addEntryAndGenerate()));
+    connect(ui->buttonOpenPort, SIGNAL(clicked(bool)), this, SLOT(openPort()));
 
-    if ( serialCommunication != nullptr )
-    {
-        // connect serialCommunication with GUI
-        connect(serialCommunication, SIGNAL(sendMessageToMain(Utils::ReplyCode,QString,QString)), this, SLOT(receiveReply(Utils::ReplyCode,QString,QString)));
-        connect(serialCommunication, SIGNAL(sendNewWebsite(QString,QString)), this, SLOT(addWebsite(QString,QString)));
-        //connect(serialCommunication, SIGNAL(sendPassword(QString,QString)), this, SLOT(displayPassword(QString,QString)));
-    }
+    ui->spinBoxLength->setValue(Utils::MINIMUM_PASSWORD_LENGTH + 1);
+    ui->spinBoxLength->setRange(Utils::MINIMUM_PASSWORD_LENGTH + 1, Utils::MAXIMUM_PASSWORD_LENGTH);
+
+    dictionar = Utils::readDictionary("CommonWords", Utils::MINIMUM_PASSWORD_LENGTH, [](int a, int b){ return a < b; });
 }
 
 MainWindow::~MainWindow()
@@ -74,66 +70,65 @@ void MainWindow::deleteWebsite(QString website, QString username)
     }
 }
 
+bool MainWindow::isFillupFiedls(QList<QLineEdit*> fields, const QString& errorMessage )
+{
+    for ( QLineEdit* field : fields ) {
+        if (field->text().isEmpty()) {
+            QMessageBox::information(NULL, "Information", errorMessage);
+            ui->logTextEdit->appendPlainText(errorMessage);
+            this->clearGUI();
+            return false;
+        }
+    }
+    return true;
+}
+
+bool MainWindow::checkAvailablePort(const QString& errorMessage) {
+    if (serialCommunication == nullptr) {
+        QMessageBox::information(NULL, "Information", errorMessage);
+        ui->logTextEdit->appendPlainText(errorMessage);
+        this->clearGUI();
+        return false;
+    }
+    return true;
+}
+
 void MainWindow::addEntry()
 {
     // check if all the fields are not empty
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditPassword->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) )
+    if (isFillupFiedls(QList<QLineEdit*>{ui->lineEditUsername, ui->lineEditPassword, ui->lineEditWebsite}, "Not all the fields are filled up"))
     {
-        // not all information is filled
-        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
-        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
-        this->clearGUI();
-    }
-    else
-    {
-        //add entry in the database
-
-        // check if the connection is made
-        if(serialCommunication == nullptr)
+        if (checkAvailablePort("Something wrong with the port"))
         {
-            QMessageBox::information(NULL, "Information", "Something wrong with the port");
-            ui->logTextEdit->appendPlainText("Something wrong with the port");
-            this->clearGUI();
-        }
-        else
-        {
-            QString fullPassword = Utils::addPadding(ui->lineEditPassword->text());
-
-            // add the password to the database via arduino
-            if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
-                                              ui->lineEditUsername->text(),
-                                              fullPassword))
+            if (ui->lineEditPassword->text().size() > Utils::MINIMUM_PASSWORD_LENGTH
+                    && std::binary_search(dictionar.begin(), dictionar.end(), ui->lineEditPassword->text()) == false)
             {
-                // something went wrong
-                QMessageBox::information(NULL, "Information", "Could not add entry");
-                ui->logTextEdit->appendPlainText("Could not add entry");
+                QString fullPassword = Utils::addPadding(ui->lineEditPassword->text());
+
+                // add the password to the database via arduino
+                if (!serialCommunication->addEntry(ui->lineEditWebsite->text(),
+                                                  ui->lineEditUsername->text(),
+                                                  fullPassword))
+                {
+                    // something went wrong
+                    QMessageBox::information(NULL, "Information", "Could not add entry");
+                    ui->logTextEdit->appendPlainText("Could not add entry");
+                    this->clearGUI();
+                }
+            }
+            else
+            {
+                QMessageBox::information(NULL, "Information", "Problem with the password to short(min 8) or is common word");
+                ui->logTextEdit->appendPlainText("Problem with the password to short(min 8) or is common word");
                 this->clearGUI();
             }
         }
     }
 }
 
-QString generateAllowTypes(bool allowSymbols, bool allowNumbers, bool allowLetters)
-{
-    if ((allowSymbols == false) && (allowNumbers == false) && (allowLetters == true)) return "1";
-    if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == false)) return "2";
-    if ((allowSymbols == false) && (allowNumbers == true) && (allowLetters == true)) return "3";
-    if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == false)) return "4";
-    if ((allowSymbols == true) && (allowNumbers == false) && (allowLetters == true)) return "5";
-    if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == false)) return "6";
-    if ((allowSymbols == true) && (allowNumbers == true) && (allowLetters == true)) return "7";
-    return "0";
-}
-
 void MainWindow::addEntryAndGenerate()
 {
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()))
-    {
-        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
-        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
-        this->clearGUI();
-    }
-    else
+    if (isFillupFiedls(QList<QLineEdit*>{ui->lineEditUsername, ui->lineEditWebsite}, "Not all the fields are filled up"))
     {
         if(!ui->checkBoxLetters->isChecked() && !ui->checkBoxNumbers->isChecked() && !ui->checkBoxSymbols->isChecked())
         {
@@ -142,16 +137,10 @@ void MainWindow::addEntryAndGenerate()
         }
         else
         {
-            if(serialCommunication == nullptr)
-            {
-                QMessageBox::information(NULL, "Information", "Something wrong with the port");
-                ui->logTextEdit->appendPlainText("Something wrong with the port");
-                this->clearGUI();
-            }
-            else
+            if (checkAvailablePort("Something wrong with the port"))
             {
                 QString passwordLength = ui->spinBoxLength->text();
-                QString allowedTypes = generateAllowTypes(ui->checkBoxSymbols->isChecked(), ui->checkBoxNumbers->isChecked(), ui->checkBoxLetters->isChecked());
+                QString allowedTypes = Utils::generateAllowTypes(ui->checkBoxSymbols->isChecked(), ui->checkBoxNumbers->isChecked(), ui->checkBoxLetters->isChecked());
                 if (!serialCommunication->addEntryAndGenerate(ui->lineEditWebsite->text(),
                                                               ui->lineEditUsername->text(),
                                                               allowedTypes,
@@ -168,25 +157,9 @@ void MainWindow::addEntryAndGenerate()
 
 void MainWindow::retrieveEntry()
 {
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()) )
+    if (isFillupFiedls(QList<QLineEdit*>{ui->lineEditUsername, ui->lineEditWebsite}, "Not all the fields are filled up"))
     {
-        // not all information is filled
-        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
-        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
-        this->clearGUI();
-    }
-    else
-    {
-        //retrieve entry
-
-        // check if the connection is made
-        if(serialCommunication == nullptr)
-        {
-            QMessageBox::information(NULL, "Information", "Something wrong with the port");
-            ui->logTextEdit->appendPlainText("Something wrong with the port");
-            this->clearGUI();
-        }
-        else
+        if (checkAvailablePort("Something wrong with the port"))
         {
             // send the request to get the entry
             if (!serialCommunication->retrieveEntry(ui->lineEditWebsite->text(),
@@ -203,23 +176,9 @@ void MainWindow::retrieveEntry()
 
 void MainWindow::deleteEntry()
 {
-    if ((ui->lineEditUsername->text().isEmpty()) || (ui->lineEditWebsite->text().isEmpty()))
+    if (isFillupFiedls(QList<QLineEdit*>{ui->lineEditUsername, ui->lineEditWebsite}, "Not all the fields are filled up"))
     {
-        // not all information is filled
-        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
-        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
-        this->clearGUI();
-    }
-    else
-    {
-        // delete entry
-        if (serialCommunication == nullptr)
-        {
-            QMessageBox::information(NULL, "Information", "Something wrong with the port");
-            ui->logTextEdit->appendPlainText("Something wrong with the port");
-            this->clearGUI();
-        }
-        else
+        if (checkAvailablePort("Something wrong with the port"))
         {
             // send the request to delete the entry
             if (!serialCommunication->deleteEntry(ui->lineEditWebsite->text(),
@@ -240,14 +199,7 @@ void MainWindow::obtainWebsites()
     ui->tableWidgetWebsite->clearContents();
     ui->tableWidgetWebsite->setRowCount(0);
 
-    // check if the connection is made
-    if (serialCommunication == nullptr)
-    {
-        QMessageBox::information(NULL, "Information", "Something wrong with the port");
-        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
-        this->clearGUI();
-    }
-    else
+    if (checkAvailablePort("Something wrong with the port"))
     {
         if( !serialCommunication->obtainWebsites() )
         {
@@ -255,6 +207,41 @@ void MainWindow::obtainWebsites()
             QMessageBox::information(NULL, "Information", "Couldn't obtain websites");
             ui->logTextEdit->appendPlainText("Could not obtain entry");
             this->clearGUI();
+        }
+    }
+}
+
+void MainWindow::openPort()
+{
+    if( ui->lineEditName->text().isEmpty() ||
+        ui->lineEditBautRate->text().isEmpty() ||
+        ui->lineEditDatabits->text().isEmpty() ||
+        ui->lineEditParity->text().isEmpty() ||
+        ui->lineEditStopBits->text().isEmpty() ||
+        ui->lineEditFlowControl->text().isEmpty() )
+    {
+        QMessageBox::information(NULL, "Information", "Not all the fields are filled up");
+        ui->logTextEdit->appendPlainText("Not all the fields are filled up");
+    }
+    else
+    {
+        try
+        {
+            serialCommunication.reset( new SerialCommunication( this, ui->lineEditName->text(),
+                                       ui->lineEditBautRate->text().toInt(),
+                                       ui->lineEditDatabits->text().toInt(),
+                                       ui->lineEditParity->text().toInt(),
+                                       ui->lineEditStopBits->text().toInt(),
+                                       ui->lineEditFlowControl->text().toInt()));
+            connect(serialCommunication.get(), SIGNAL(sendMessageToMain(Utils::ReplyCode,QString,QString)), this, SLOT(receiveReply(Utils::ReplyCode,QString,QString)));
+            connect(serialCommunication.get(), SIGNAL(sendNewWebsite(QString,QString)), this, SLOT(addWebsite(QString,QString)));
+
+            serialCommunication->checkCorrectPort();
+
+        } catch (std::exception& )
+        {
+            QMessageBox::information(NULL, "Information", "Couldn't open the port");
+            ui->logTextEdit->appendPlainText("Not all the fields are filled up");
         }
     }
 }
@@ -290,6 +277,9 @@ void MainWindow::receiveReply(Utils::ReplyCode reply, QString message, QString s
         }
         break;
     case Utils::ReplyCode::ReplyPasswordGenerated:
+        QMessageBox::information(NULL, message, status);
+        return;
+    case Utils::ReplyCode::ReplyCorrectPort:
         QMessageBox::information(NULL, message, status);
         return;
     case Utils::ReplyCode::ReplyError:

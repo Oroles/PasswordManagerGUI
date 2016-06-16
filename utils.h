@@ -11,20 +11,48 @@ namespace Utils {
     static const QString END_COMMAND = "\n";
     static const int KEY_SIZE = 16;
     static const int PASSWORD_SIZE = 16;
+    static const int MINIMUM_PASSWORD_LENGTH = 7;
+    static const int MAXIMUM_PASSWORD_LENGTH = 12;
 
+    //These are all the request types
+    enum class RequestTypes{ AddEntryRequest = 1,
+                             RetriveEntryRequest = 2,
+                             DeleteEntryRequest = 3,
+                             ObtainWebsitesRequest = 4,
+                             CheckCorrectPortRequest = 5,
+                             GetHasValueRequest = 6,
+                             AddAndGenerateEntryRequest = 7 };
+
+
+    //These are the types of the replies it can receive from the Arduino
+    //These have the local values, but there are also global values see function decode
     enum class ReplyCode {ReplyAddEntry,
-                          /*ReplyRetrieveEntry,*/
                           ReplyDeleteEntry,
                           ReplyObtainWebsites,
                           ReplyPasswordGenerated,
-                          /*CloseConnection,*/
+                          ReplyCorrectPort,
                           ReplyError};
+
+    static const QString ADD_ENTRY = "1";
+    static const QString RETRIVE_ENTRY = "2";
+    static const QString DELETE_ENTRY = "3";
+    static const QString OBTAIN_WEBSITES = "4";
+    static const QString ADD_GENERATE_ENTRY = "7";
 
     QString getName(QString field, const QList<QByteArray>& list);
     uint getValue(QString field, const QList<QByteArray>& list);
 
     ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
     bool isValidCommand(const QString& command);
+    QString generateAllowTypes(bool allowSymbols, bool allowNumbers, bool allowLetters);
+    QVector<QString> readDictionary(const QString &filename, int length, bool (*f)(int, int));
+
+    template < typename T>
+    struct Deleter {
+        void operator()(T* t) {
+            delete t;
+        }
+    };
 
     template <typename T, int size = KEY_SIZE>
     T addPadding(const T& message) {
