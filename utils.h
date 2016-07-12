@@ -4,6 +4,7 @@
 #include <QList>
 #include <QByteArray>
 #include <QString>
+#include <QObject>
 
 namespace Utils {
     static const QString SEPARATOR = "\r";
@@ -26,12 +27,13 @@ namespace Utils {
 
     //These are the types of the replies it can receive from the Arduino
     //These have the local values, but there are also global values see function decode
-    enum class ReplyCode {ReplyAddEntry,
-                          ReplyDeleteEntry,
-                          ReplyObtainWebsites,
-                          ReplyPasswordGenerated,
-                          ReplyCorrectPort,
-                          ReplyError};
+    enum class ReplyCode {ReplyAddEntry = 1,
+                          ReplyDeleteEntry = 3,
+                          ReplyObtainWebsites = 4,
+                          ReplyOpenPort = 5,
+                          ReplyPasswordGenerated = 7,
+                          ReplyIsAlive = 8,
+                          ReplyError = 9};
 
     static const QString ADD_ENTRY = "1";
     static const QString RETRIVE_ENTRY = "2";
@@ -42,17 +44,11 @@ namespace Utils {
     QString getName(QString field, const QList<QByteArray>& list);
     uint getValue(QString field, const QList<QByteArray>& list);
 
-    ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
-    bool isValidCommand(const QString& command);
+    //ReplyCode decodeReply(QString reply, QString &arg1, QString &arg2);
+    //bool isValidCommand(const QString& command);
     QString generateAllowTypes(bool allowSymbols, bool allowNumbers, bool allowLetters);
     QVector<QString> readDictionary(const QString &filename, int length, bool (*f)(int, int));
-
-    template < typename T>
-    struct Deleter {
-        void operator()(T* t) {
-            delete t;
-        }
-    };
+    void displayMessageBox(const QString& title, const QString& message, Qt::WindowModality modality = Qt::ApplicationModal, QWidget* parent = NULL);
 
     template <typename T, int size = KEY_SIZE>
     T addPadding(const T& message) {
