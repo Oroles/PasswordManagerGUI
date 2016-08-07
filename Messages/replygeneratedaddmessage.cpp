@@ -15,6 +15,11 @@ bool ReplyGeneratedAddMessage::isExpected(QList<RequestMessage>& msgs) const
     QStringList arguments;
     this->decode(m_command, arguments);
 
+    if (m_command == "7\rStored in Buffer")
+    {
+        return true;
+    }
+
     //search for the command
     QList<RequestMessage>::iterator it = std::find_if(msgs.begin(), msgs.end(), [&arguments](const RequestMessage& msg) {
                                                         if (msg.getArgument(0) == arguments[0])
@@ -50,7 +55,7 @@ bool ReplyGeneratedAddMessage::isValid(const QString& command) const
 bool ReplyGeneratedAddMessage::decode(const QString& command, QStringList &arguments) const
 {
     arguments = command.split(Utils::SEPARATOR);
-    if (arguments.size() == 2)
+    if (arguments.size() == 4)
     {
         return true;
     }
@@ -62,10 +67,19 @@ void ReplyGeneratedAddMessage::process()
     if (isValid(m_command))
     {
         QStringList arguments;
-        if (decode(m_command, arguments))
+        if (m_command == "7\rStored in Buffer")
         {
+            decode(m_command, arguments);
             m_sender->replyGeneratedAddMessage(arguments[1]);
             return;
+        }
+        else
+        {
+            if (decode(m_command, arguments))
+            {
+                m_sender->replyAddMessage(arguments[1], arguments[2], arguments[3]);
+                return;
+            }
         }
     }
     throw std::exception();
@@ -74,4 +88,5 @@ void ReplyGeneratedAddMessage::process()
 ReplyGeneratedAddMessageSender::ReplyGeneratedAddMessageSender(SerialController *controller)
 {
     connect(this, SIGNAL(replyGeneratedAddMessage(QString)), controller, SLOT(replyGeneratedAddMessage(QString)));
+    connect(this, SIGNAL(replyAddMessage(QString,QString,QString)), controller, SLOT(replyAddMessage(QString,QString,QString)));
 }

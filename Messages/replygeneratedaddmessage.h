@@ -14,6 +14,7 @@ public:
 
 signals:
     void replyGeneratedAddMessage(const QString&);
+    void replyAddMessage(const QString&, const QString&, const QString&);
 };
 
 class ReplyGeneratedAddMessage : public ReplyMessage

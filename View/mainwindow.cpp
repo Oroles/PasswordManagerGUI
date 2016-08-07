@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "utils.h"
+#include "Controller/settings.h"
 
 #include <QStringList>
 #include <QDebug>
@@ -28,6 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
                                       min-width: 80px");
 
     //ui->centralwidget->setStyleSheet("#tabWidget{background: green;}");
+    connect(ui->checkBoxDisableAlert, SIGNAL(toggled(bool)), &Settings::getInstance(), SLOT(disableAlertMessages(bool)));
+    connect(ui->checkBoxDisableLog, SIGNAL(toggled(bool)), &Settings::getInstance(), SLOT(disableLogMessages(bool)));
+    connect(ui->checkBoxEnforceLength, SIGNAL(toggled(bool)), &Settings::getInstance(), SLOT(enforceMinimumLength(bool)));
+    connect(ui->checkBoxSendIsAlive, SIGNAL(toggled(bool)), &Settings::getInstance(), SLOT(sendIsAlivePackage(bool)));
 
     // set table widget
     filterModel.setSourceModel(&tableEntryModel);
@@ -151,8 +156,8 @@ void MainWindow::requestAddEntry()
     {
         if (checkAvailablePort("Something wrong with the port"))
         {
-            if (ui->lineEditPassword->text().size() > Utils::MINIMUM_PASSWORD_LENGTH
-                    && std::binary_search(dictionar.begin(), dictionar.end(), ui->lineEditPassword->text()) == false)
+            if ((!Settings::getInstance().IsEnforceMinimumLength()) || (ui->lineEditPassword->text().size() > Utils::MINIMUM_PASSWORD_LENGTH
+                    && std::binary_search(dictionar.begin(), dictionar.end(), ui->lineEditPassword->text()) == false))
             {
                 QString fullPassword = Utils::addPadding(ui->lineEditPassword->text());
 
@@ -293,7 +298,10 @@ void MainWindow::replyPortStatus(const QString &status)
 
 void MainWindow::addToLog(const QString &msg)
 {
-    ui->logTextEdit->appendPlainText(msg);
+    if (!Settings::getInstance().IsDisableLogMessages())
+    {
+        ui->logTextEdit->appendPlainText(msg);
+    }
 }
 
 void MainWindow::displayMessage(const QString &title, const QString &msg, Qt::WindowModality modality)

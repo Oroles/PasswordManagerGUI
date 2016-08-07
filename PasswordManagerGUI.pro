@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     Model/tableEntry.cpp \
     Controller/tableentrymodel.cpp \
     Messages/requestmessage.cpp \
-    Controller/serialreceiver.cpp
+    Controller/serialreceiver.cpp \
+    Controller/settings.cpp
 
 
 HEADERS  += \
@@ -50,7 +51,8 @@ HEADERS  += \
     Controller/tableentrymodel.h \
     Messages/requestmessage.h \
     Model/syncqueue.hpp \
-    Controller/serialreceiver.h
+    Controller/serialreceiver.h \
+    Controller/settings.h
 
 
 FORMS    += \

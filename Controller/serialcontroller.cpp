@@ -8,6 +8,7 @@
 #include "Messages/replyisalivemessage.h"
 #include "Messages/requestmessage.h"
 #include "utils.h"
+#include "settings.h"
 
 #include <sstream>
 #include <algorithm>
@@ -26,9 +27,11 @@ SerialController::SerialController(QObject *parent)
     });
 
     connect(&m_isAlivedPortTimer, &QTimer::timeout, [=]() {
-        requestIsStillAlive();
-        m_isAlivedPort ? replyPortStatus("Connected") : replyPortStatus("Disconnected");
-        m_isAlivedPort = false;
+        if (Settings::getInstance().IsSendingAlivePackages()) {
+            requestIsStillAlive();
+            m_isAlivedPort ? replyPortStatus("Connected") : replyPortStatus("Disconnected");
+            m_isAlivedPort = false;
+        }
     });
 
     connect(&m_serialReceiver, SIGNAL(receivedMessage(QString)), this, SLOT(receivedReply(QString)));

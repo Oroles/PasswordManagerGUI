@@ -6,8 +6,9 @@
 #include <QString>
 #include <QDebug>
 
-
 #include <algorithm>
+
+#include "Controller/settings.h"
 
 namespace Utils {
 
@@ -75,10 +76,13 @@ namespace Utils {
 
     void displayMessageBox(const QString& title, const QString& message, Qt::WindowModality modality, QWidget *parent)
     {
-        QMessageBox* msg = new QMessageBox(parent);
-        msg->setText(message);
-        msg->setWindowTitle(title);
-        msg->setWindowModality(modality);
-        msg->show();
+        if (!Settings::getInstance().IsDisableAlertMesssages())
+        {
+            QMessageBox* msg = new QMessageBox(parent);
+            msg->setText(message);
+            msg->setWindowTitle(title);
+            msg->setWindowModality(modality);
+            msg->show();
+        }
     }
 }
